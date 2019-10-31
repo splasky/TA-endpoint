@@ -1,187 +1,66 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "https.h"
 
+#define HOST "https://tangle-accel.biilabs.io/"
+#define API "transaction/"
 
-int main(int argc, char *argv[])
-{
-    char *url;
-    char data[1024], response[4096];
-    int  i, ret, size;
+int main(int argc, char *argv[]) {
+  char req_body[1024], response[4096];
+  int ret, size;
+  char url[] = HOST API;
+  HTTP_INFO http_info;
 
-    HTTP_INFO hi1, hi2;
+  // Init http session. verify: check the server CA cert.
+  https_init(&http_info, true, false);
 
+  if (http_open(&http_info, url) < 0) {
+    http_strerror(req_body, 1024);
+    printf("socket error: %s \n", req_body);
 
-    // Init http session. verify: check the server CA cert.
-    http_init(&hi1, FALSE);
-    http_init(&hi2, TRUE);
+    goto error;
+  }
 
-/*
-    url = "https://localhost:8080/upload";
-    sprintf(data,
-            "--1234567890abcdef\r\n"
-            "Content-Disposition: form-data; name=\"upload\"; filename=\"test.txt\"\r\n"
-            "Content-Type: text/plain\r\n\r\n"
-            "test message\r\n"
-            "--1234567890abcdef--\r\n\r\n"
-    );
+  http_info.request.close = false;
+  http_info.request.chunked = false;
+  snprintf(http_info.request.method, 8, "POST");
+  snprintf(http_info.request.content_type, 256, "application/json");
+  size = sprintf(
+      req_body,
+      "{\"value\": 0, \"tag\": \"POWEREDBYTANGLEACCELERATOR9\"}\r\n\r\n");
 
-    ret = http_post(&hi1, url, data, response, sizeof(response));
+  http_info.request.content_length = size;
 
-    printf("return code: %d \n", ret);
-    printf("return body: %s \n", response);
-*/
+  if (http_write_header(&http_info) < 0) {
+    http_strerror(req_body, 1024);
+    printf("socket error: %s \n", req_body);
 
-    url = "https://localhost:8080/upload";
+    goto error;
+  }
 
-    if(http_open(&hi1, url) < 0)
-    {
-        http_strerror(data, 1024);
-        printf("socket error: %s \n", data);
+  if (http_write(&http_info, req_body, size) != size) {
+    http_strerror(req_body, 1024);
+    printf("socket error: %s \n", req_body);
 
-        goto error;
-    }
+    goto error;
+  }
 
-    snprintf(hi1.request.method, 8, "POST");
-    hi1.request.close = FALSE;
-    hi1.request.chunked = FALSE;
-    snprintf(hi1.request.content_type, 256, "multipart/form-data; boundary=1234567890abcdef");
+  // Write end-chunked
+  if (http_write_end(&http_info) < 0) {
+    http_strerror(req_body, 1024);
+    printf("socket error: %s \n", req_body);
 
-    size = sprintf(data,
-                   "--1234567890abcdef\r\n"
-                   "Content-Disposition: form-data; name=\"upload\"; filename=\"test.txt\"\r\n"
-                   "Content-Type: text/plain\r\n\r\n"
-                   "test message\r\n"
-                   "--1234567890abcdef--\r\n"
-                   );
+    goto error;
+  }
 
-    hi1.request.content_length = size;
+  ret = http_read_chunked(&http_info, response, sizeof(response));
 
-    if(http_write_header(&hi1) < 0)
-    {
-        http_strerror(data, 1024);
-        printf("socket error: %s \n", data);
-
-        goto error;
-    }
-
-    if(http_write(&hi1, data, size) != size)
-    {
-        http_strerror(data, 1024);
-        printf("socket error: %s \n", data);
-
-        goto error;
-    }
-
-    // Write end-chunked
-    if(http_write_end(&hi1) < 0)
-    {
-        http_strerror(data, 1024);
-        printf("socket error: %s \n", data);
-
-        goto error;
-    }
-
-    ret = http_read_chunked(&hi1, response, sizeof(response));
-
-    printf("return code: %d \n", ret);
-    printf("return body: %s \n", response);
-
-
-/*
-    // Test a http get method.
-    url = "http://httpbin.org/get?message=https_client";
-
-    ret = http_get(&hi1, url, response, sizeof(response));
-
-    printf("return code: %d \n", ret);
-    printf("return body: %s \n", response);
-
-    // Test a http post method.
-
-    url = "http://httpbin.org/post";
-    sprintf(data, "{\"message\":\"Hello, https_client!\"}");
-
-    ret = http_post(&hi1, url, data, response, sizeof(response));
-
-    printf("return code: %d \n", ret);
-    printf("return body: %s \n", response);
-
-    // Test a https get method.
-
-    url = "https://httpbin.org/get?message=https_client";
-
-    ret = http_get(&hi2, url, response, sizeof(response));
-
-    printf("return code: %d \n", ret);
-    printf("return body: %s \n", response);
-
-    // Test a https post method.
-
-    url = "https://httpbin.org/post";
-    sprintf(data, "{\"message\":\"Hello, https_client!\"}");
-
-    ret = http_post(&hi2, url, data, response, sizeof(response));
-
-    printf("return code: %d \n", ret);
-    printf("return body: %s \n", response);
-
-    // Test a https post with the chunked-encoding data.
-
-    url = "https://httpbin.org/post";
-
-    if(http_open_chunked(&hi2, url) == 0)
-    {
-        size = sprintf(data, "[{\"message\":\"Hello, https_client %d\"},", 0);
-
-        if(http_write_chunked(&hi2, data, size) != size)
-        {
-            http_strerror(data, 1024);
-            printf("socket error: %s \n", data);
-
-            goto error;
-        }
-
-        for(i=1; i<4; i++)
-        {
-            size = sprintf(data, "{\"message\":\"Hello, https_client %d\"},", i);
-            if(http_write_chunked(&hi2, data, size) != size)
-            {
-                http_strerror(data, 1024);
-                printf("socket error: %s \n", data);
-
-                goto error;
-            }
-        }
-
-        size = sprintf(data, "{\"message\":\"Hello, https_client %d\"}]", i);
-        if(http_write_chunked(&hi2, data, strlen(data)) != size)
-        {
-            http_strerror(data, 1024);
-            printf("socket error: %s \n", data);
-
-            goto error;
-        }
-
-        ret = http_read_chunked(&hi2, response, sizeof(response));
-
-        printf("return code: %d \n", ret);
-        printf("return body: %s \n", response);
-
-    }
-    else
-    {
-        http_strerror(data, 1024);
-        printf("socket error: %s \n", data);
-    }
-
-    error:
-*/
+  printf("return code: %d \n", ret);
+  printf("return body: %s \n", response);
 
 error:
+  http_close(&http_info);
 
-    http_close(&hi1);
-    http_close(&hi2);
-
-    return 0;
+  return 0;
 }

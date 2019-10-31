@@ -1,4 +1,4 @@
-#define ca_crt_rsa_size 70369 
+#define ca_crt_rsa_size 70369
 
 char ca_crt_rsa[70369] = {
     "-----BEGIN CERTIFICATE-----\r\n"
@@ -1141,5 +1141,4 @@ char ca_crt_rsa[70369] = {
     "uLjbvrW5KfnaNwUASZQDhETnv0Mxz3WLJdH0pmT1kvarBes96aULNmLazAZfNou2\r\n"
     "XjG4Kvte9nHfRCaexOYNkbQudZWAUWpLMKawYqGT8ZvYzsRjdT9ZR7E=\r\n"
     "-----END CERTIFICATE-----\r\n"
-    " "
-};
+    " "};

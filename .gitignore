@@ -32,3 +32,5 @@
 *.dSYM/
 
 https_client
+.vscode/
+*.gcno

@@ -2,14 +2,13 @@
 
 MAKE = make
 
-CC = $(CROSS)gcc
 LD = $(CROSS)ld
 STRIP = $(CROSS)strip
 
 ROOT_DIR = $(CURDIR)
 MBEDTLS = $(ROOT_DIR)/mbedtls
 
-CFLAGS = -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2
+CFLAGS = -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2 -g3
 LDFLAGS =
 
 INCLUDES = -I$(MBEDTLS)/include
@@ -38,7 +37,9 @@ https_client: mbedtls_make $(OBJS)
 	@echo Compiling: $< ....
 	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $<
 
-clean:
+clean: clean_client mbedtls_clean
+
+clean_client:
 	rm -f https_client *.o
 
 mbedtls_clean:
