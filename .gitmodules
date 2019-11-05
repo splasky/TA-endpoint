@@ -1,0 +1,3 @@
+[submodule "third_party/hashchain"]
+	path = third_party/hashchain
+	url = git@github.com:DLTcollab/hashchain.git
