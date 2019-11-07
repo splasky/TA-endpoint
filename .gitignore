@@ -32,5 +32,7 @@
 *.dSYM/
 
 https_client
+ta_client
+build/
 .vscode/
 *.gcno
