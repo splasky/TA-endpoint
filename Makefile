@@ -1,11 +1,11 @@
-CROSS = arm-linux-gnueabi-
-CC = $(CROSS)gcc
-CXX = $(CROSS)g++
-AR = $(CROSS)ar
-RANLIB = $(CROSS)ranlib
-LD = $(CROSS)ld
-STRIP = $(CROSS)strip
-export CC CXX AR RANLIB
+#CROSS = arm-linux-gnueabi-
+#CC = $(CROSS)gcc
+#CXX = $(CROSS)g++
+#AR = $(CROSS)ar
+#RANLIB = $(CROSS)ranlib
+#LD = $(CROSS)ld
+#STRIP = $(CROSS)strip
+#export CC CXX AR RANLIB
 
 MAKE = make
 
@@ -36,14 +36,14 @@ mbedtls_make:
 
 ta_client: mbedtls_make $(OBJS)
 	@echo Linking: $@ ....
-	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -L../openssl -lcrypto
-	#$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -lcrypto
+	#$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -L$(ROOT_DIR)/third_party/openssl -lcrypto
+	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -lcrypto
 #	$(STRIP) -s $@
 
-.c.o:
+%.o: %.c
 	@echo Compiling: $< ....
-	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I../openssl/include
-	#$(CC) -g -c $(CFLAGS) $(INCLUDES) -o $@ $^
+	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I/usr/local/include
+	#$(CC) -g -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I $(ROOT_DIR)/third_party/openssl/include/
 
 clean: clean_client mbedtls_clean
 
