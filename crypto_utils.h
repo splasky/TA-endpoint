@@ -9,14 +9,16 @@
 #ifndef CRYPTO_UTILS_H
 #define CRYPTO_UTILS_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 int encrypt(unsigned char *plaintext, int plaintext_len,
-            unsigned char *ciphertext);
-int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
-            unsigned char *iv, unsigned char *plaintext);
+            unsigned char *ciphertext, uint32_t *ciphertext_len, uint8_t *iv);
+int decrypt(unsigned char *ciphertext, int ciphertext_len, uint8_t *iv,
+            unsigned char *plaintext);
 
 #ifdef __cplusplus
 }
