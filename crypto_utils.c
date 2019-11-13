@@ -27,7 +27,7 @@ static void handleErrors(void) {
 // The device ID we are used here is IMSI. We could use other physical ID in the
 // future.
 int get_device_id(char *device_id) {
-#if DEBUG
+#if 1
   strncpy(device_id, "470010171566423", 15);
   return 0;
 #endif
@@ -60,7 +60,7 @@ int get_device_id(char *device_id) {
 
 // Get AES key with hashchain in legato originated app form.
 int get_aes_key(uint8_t *key) {
-#if DEBUG
+#if 1
   uint8_t key_init[32] = {82,  142, 184, 64,  74,  105, 126, 65,  154, 116, 14,
                           193, 208, 41,  8,   115, 158, 252, 228, 160, 79,  5,
                           167, 185, 13,  159, 135, 113, 49,  209, 58,  68};
@@ -185,7 +185,7 @@ int aes_decrypt(unsigned char *ciphertext, int ciphertext_len,
   return plaintext_len;
 }
 
-#if DEBUG
+#if 1
 static uint8_t iv_global[16] = {};
 #endif
 
@@ -210,13 +210,6 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   // AES key hashchain would be another leagato original application
   unsigned char *buffer = NULL;
   get_aes_key((uint8_t *)key);
-#if DEBUG
-  for (int i = 0; i < 16; i++) {
-    iv_global[i] = iv_hash.data[i] ^ iv_hash.data[i + 16];
-  }
-  int ciphertext_len =
-      aes_encrypt(plaintext, plaintext_len, key, iv_global, ciphertext);
-#endif
   for (int i = 0; i < 16; i++) {
     iv[i] = iv_hash.data[i] ^ iv_hash.data[i + 16];
   }

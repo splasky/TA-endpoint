@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
   encrypt(MSG, strlen(MSG), ciphertext, &ciphertext_len, iv);
   serialize_msg(ciphertext, ciphertext_len, iv, msg);
   ascii_to_trytes(msg, tryte_msg);
-#if DEBUG
+#if 1
   printf("msg len = %d, tryte_msg = %d\n", strlen(msg), strlen(tryte_msg));
   trytes_to_ascii(tryte_msg, msg_de);
   uint32_t ciphertext_len_de;

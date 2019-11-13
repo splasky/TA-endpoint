@@ -23,14 +23,14 @@ mbedtls_make:
 
 ta_client: mbedtls_make $(OBJS)
 	@echo Linking: $@ ....
-	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -L$(ROOT_DIR)/third_party/openssl -lcrypto
-	#$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -lcrypto
+	#$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -L$(ROOT_DIR)/third_party/openssl -lcrypto
+	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -lcrypto
 #	$(STRIP) -s $@
 
 %.o: %.c
 	@echo Compiling: $< ....
 	#$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I../openssl/include
-	$(CC) -g -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I $(ROOT_DIR)/third_party/openssl/include/
+	$(CC) -g -c $(CFLAGS) $(INCLUDES) -o $@ $^
 
 clean: clean_client mbedtls_clean
 
