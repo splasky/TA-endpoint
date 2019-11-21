@@ -10,8 +10,20 @@
 #define API "transaction/"
 #define REQ_BODY                                                           \
   "{\"value\": 0, \"tag\": \"POWEREDBYTANGLEACCELERATOR9\", \"message\": " \
-  "\"%s\"}\r\n\r\n"
-#define MSG "THISISMSG9THISISMSG9THISISMSG"
+  "\"%s\", \"address\":\"%s\"}\r\n\r\n"
+#define ADDRESS                                                                \
+  "POWEREDBYTANGLEACCELERATOR999999999999999999999999999999999999999999999999" \
+  "999999A"
+#define MSG "THISISMSG9THISISMSG9THISISMSG:%s"
+
+void gen_trytes(uint16_t len, char *out) {
+  const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  uint8_t rand_index;
+  for (int i = 0; i < len; i++) {
+    rand_index = rand() % 27;
+    out[i] = tryte_alphabet[rand_index];
+  }
+}
 
 int main(int argc, char *argv[]) {
   char req_body[1024] = {}, response[4096] = {}, tryte_msg[1024] = {},
@@ -23,17 +35,25 @@ int main(int argc, char *argv[]) {
 
   char msg_de[1024] = {}, plain[1024] = {};
   uint32_t ciphertext_len = 0;
-  encrypt(MSG, strlen(MSG), ciphertext, &ciphertext_len, iv);
+
+  srand(time(NULL));
+  uint32_t raw_msg_len = strlen(MSG) + 81 + 1;
+  char raw_msg[raw_msg_len], next_addr[82] = {};
+
+  gen_trytes(81, next_addr);
+  snprintf(raw_msg, raw_msg_len, MSG, next_addr);
+  encrypt(raw_msg, raw_msg_len, ciphertext, &ciphertext_len, iv);
   serialize_msg(ciphertext, ciphertext_len, iv, msg);
   ascii_to_trytes(msg, tryte_msg);
+
 #if 1
   printf("msg len = %d, tryte_msg = %d\n", strlen(msg), strlen(tryte_msg));
   trytes_to_ascii(tryte_msg, msg_de);
   uint32_t ciphertext_len_de;
   printf("msg = %s \n", msg);
+  printf("msg_de = %s \n", msg_de);
   deserialize_msg(msg_de, ciphertext, &ciphertext_len_de, iv);
-  // printf("ciphertext_len_de = ");
-  // printf("%d \n", ciphertext_len_de);
+  printf("ciphertext_len_de = %d \n", ciphertext_len_de);
   decrypt(ciphertext, ciphertext_len, iv, plain);
   printf("plain = %s \n", plain);
 #endif
@@ -48,7 +68,8 @@ int main(int argc, char *argv[]) {
     goto error;
   }
 
-  sprintf(req_body, REQ_BODY, tryte_msg);
+  sprintf(req_body, REQ_BODY, tryte_msg, ADDRESS);
+  printf("body = %s \n", req_body);
   http_info.request.close = false;
   http_info.request.chunked = false;
   snprintf(http_info.request.method, 8, "POST");

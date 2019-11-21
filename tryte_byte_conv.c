@@ -13,7 +13,7 @@ void ascii_to_trytes(unsigned char const *const input, char *const output) {
   const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   unsigned int j = 0, dec = 0, lower = 0, upper = 0;
 
-  for (uint8_t i = 0; input[i]; i++) {
+  for (uint16_t i = 0; input[i]; i++) {
     dec = input[i];
     upper = (dec >> 4) & 15;
     lower = dec & 15;
@@ -26,7 +26,7 @@ void trytes_to_ascii(unsigned char const *const input, char *const output) {
   const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   unsigned int upper = 0, lower = 0;
 
-  for (uint8_t i = 0; input[i]; i += 2) {
+  for (uint16_t i = 0; input[i]; i += 2) {
     if (input[i] == '9') {
       upper = 0;
     } else {
