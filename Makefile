@@ -7,7 +7,7 @@ LDFLAGS =
 INCLUDES = -I$(MBEDTLS)/include
 LIBS = $(MBEDTLS)/library/libmbedx509.a $(MBEDTLS)/library/libmbedtls.a $(MBEDTLS)/library/libmbedcrypto.a
 
-SOURCES = main.c https.c crypto_utils.c
+SOURCES = main.c https.c crypto_utils.c serializer.c tryte_byte_conv.c
 
 OBJS = $(SOURCES:.c=.o)
 
