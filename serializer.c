@@ -11,34 +11,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-int serialize_msg(uint8_t *ciphertext, uint32_t ciphertext_len, uint8_t *iv,
+#define IV_LEN 16
+#define UINT32_LEN 32
+
+int serialize_msg(uint8_t *iv, uint32_t ciphertext_len, uint8_t *ciphertext,
                   char *out_msg) {
-  char str_ciphertext[1025] = {}, str_iv[17] = {};
+  char str_ciphertext[1025] = {}, str_iv[IV_LEN + 1] = {}, str_ciphertext_len[UINT32_LEN + 1] = {};
   memcpy(str_ciphertext, ciphertext, 1024);
   memcpy(str_iv, iv, 16);
-  sprintf(out_msg, "%s:%d:%s", str_ciphertext, ciphertext_len, str_iv);
+  sprintf(str_ciphertext_len, "%032d", ciphertext_len);
+  sprintf(out_msg, "%s%s%s", str_iv, str_ciphertext_len, str_ciphertext);
   return 0;
 }
 
-int deserialize_msg(char *msg, uint8_t *ciphertext, uint32_t *ciphertext_len,
-                    uint8_t *iv) {
-  char str_ciphertext[1025] = {}, str_iv[17] = {};
-  const char s[2] = ":";
-  char *token;
-  token = strtok(msg, s);
-  memcpy(ciphertext, token, 1024);
-  int i = 0;
-  while (token != NULL) {
-    token = strtok(NULL, s);
-
-    if (i == 0) {
-      *ciphertext_len = atoi(token);
-    } else if (i == 1) {
-      memcpy(iv, token, 16);
-      break;
-    }
-    i++;
-  }
-
+int deserialize_msg(char *msg, uint8_t *iv, uint32_t *ciphertext_len,
+                    uint8_t *ciphertext) {
+  char str_ciphertext[1025] = {}, str_iv[IV_LEN + 1] = {}, str_ciphertext_len[UINT32_LEN + 1] = {};
+  strncpy(iv, msg, IV_LEN);
+  strncpy(str_ciphertext_len, msg + IV_LEN, IV_LEN);
+  strncpy(ciphertext, msg + IV_LEN + UINT32_LEN, strlen(msg) - IV_LEN - UINT32_LEN);
+  ciphertext_len = atoi(str_ciphertext_len);
   return 0;
 }

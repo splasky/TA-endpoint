@@ -15,10 +15,10 @@
 extern "C" {
 #endif
 
-int serialize_msg(uint8_t *ciphertext, uint32_t ciphertext_len, uint8_t *iv,
+int serialize_msg(uint8_t *iv, uint32_t ciphertext_len, uint8_t *ciphertext,
                   char *out_msg);
-int deserialize_msg(char *msg, uint8_t *ciphertext, uint32_t *ciphertext_len,
-                    uint8_t *iv);
+int deserialize_msg(char *msg, uint8_t *iv, uint32_t *ciphertext_len,
+                    uint8_t *ciphertext);
 
 #ifdef __cplusplus
 }

@@ -742,6 +742,7 @@ http_retcode_t http_write_end(HTTP_INFO *hi) {
 http_retcode_t http_read_chunked(HTTP_INFO *hi, char *response, int size) {
   http_retcode_t ret;
   if (NULL == hi) {
+    printf("error: NULL == hi\n");
     return error;
   }
 
@@ -765,8 +766,10 @@ http_retcode_t http_read_chunked(HTTP_INFO *hi, char *response, int size) {
     } else if (ret < 0) {
       https_close(hi);
       _error = ret;
-
-      return error;
+      
+      // TODO fix error -26624
+      printf("error: https_read error\n");
+      return _error;
     } else if (ret == 0) {
       https_close(hi);
       break;
