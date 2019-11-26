@@ -24,7 +24,7 @@ mbedtls_make:
 ta_client: mbedtls_make $(OBJS)
 	@echo Linking: $@ ....
 	#$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -L$(ROOT_DIR)/third_party/openssl -lcrypto
-	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -lcrypto
+	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -lasan -lcrypto
 #	$(STRIP) -s $@
 
 %.o: %.c
@@ -32,7 +32,15 @@ ta_client: mbedtls_make $(OBJS)
 	#$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I../openssl/include
 	$(CC) -g -c $(CFLAGS) $(INCLUDES) -o $@ $^
 
-clean: clean_client mbedtls_clean
+test: 
+	$(CC) -g -o test_tryte_byte_conv test_tryte_byte_conv.c tryte_byte_conv.c
+	$(CC) -g -o test_crypto_utils test_crypto_utils.c crypto_utils.c -lcrypto
+	$(CC) -g -o test_serializer test_serializer.c serializer.c
+
+clean: clean_client mbedtls_clean clean_test
+
+clean_test:
+	rm -f test_crypto_utils test_serializer test_tryte_byte_conv
 
 clean_client:
 	rm -f ta_client *.o
