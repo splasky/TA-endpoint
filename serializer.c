@@ -12,24 +12,39 @@
 #include <string.h>
 
 #define IV_LEN 16
-#define UINT32_LEN 32
+#define UINT32_LEN 10
 
 int serialize_msg(uint8_t *iv, uint32_t ciphertext_len, uint8_t *ciphertext,
-                  char *out_msg) {
-  char str_ciphertext[1025] = {}, str_iv[IV_LEN + 1] = {}, str_ciphertext_len[UINT32_LEN + 1] = {};
-  memcpy(str_ciphertext, ciphertext, 1024);
-  memcpy(str_iv, iv, 16);
-  sprintf(str_ciphertext_len, "%032d", ciphertext_len);
-  sprintf(out_msg, "%s%s%s", str_iv, str_ciphertext_len, str_ciphertext);
+                  char *out_msg, uint32_t *out_msg_len) {
+  char str_ciphertext_len[UINT32_LEN + 1] = {};
+  char *ptr = out_msg;
+
+  sprintf(str_ciphertext_len, "%010d", ciphertext_len);
+  memcpy(ptr, iv, IV_LEN);
+  ptr += IV_LEN;
+  memcpy(ptr, str_ciphertext_len, UINT32_LEN);
+  ptr += UINT32_LEN;
+  memcpy(ptr, ciphertext, ciphertext_len);
+
+  *out_msg_len = IV_LEN + UINT32_LEN + ciphertext_len;
+
   return 0;
 }
 
 int deserialize_msg(char *msg, uint8_t *iv, uint32_t *ciphertext_len,
                     uint8_t *ciphertext) {
-  char str_ciphertext[1025] = {}, str_iv[IV_LEN + 1] = {}, str_ciphertext_len[UINT32_LEN + 1] = {};
-  strncpy(iv, msg, IV_LEN);
-  strncpy(str_ciphertext_len, msg + IV_LEN, IV_LEN);
-  strncpy(ciphertext, msg + IV_LEN + UINT32_LEN, strlen(msg) - IV_LEN - UINT32_LEN);
-  ciphertext_len = atoi(str_ciphertext_len);
+  char str_ciphertext_len[UINT32_LEN + 1] = {};
+  char *ptr = msg;
+  uint32_t ciphertext_len_tmp;
+
+  memcpy(iv, ptr, IV_LEN);
+  ptr += IV_LEN;
+  memcpy(str_ciphertext_len, ptr, UINT32_LEN);
+  ciphertext_len_tmp = atoi(str_ciphertext_len);
+  ptr += UINT32_LEN;
+  memcpy(ciphertext, ptr, ciphertext_len_tmp);
+
+  *ciphertext_len = ciphertext_len_tmp;
+
   return 0;
 }

@@ -1,4 +1,5 @@
 #include "crypto_utils.h"
+#include "third_party/hashchain/hashchain.c"
 #include <openssl/bio.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
@@ -6,12 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "third_party/hashchain/hashchain.c"
 
 #define OPENSSL_SUCCESS 1
 #define FAILED 1
 #define AES_BLOCK_SIZE 16
-#define CIPHER_LEN_PKCS5(plain_text) \
+#define CIPHER_LEN_PKCS5(plain_text)                                           \
   (strlen(plain_text) / AES_BLOCK_SIZE + 1) * AES_BLOCK_SIZE
 
 #define MAXLINE 1024
@@ -58,6 +58,12 @@ int get_device_id(char *device_id) {
   return 0;
 }
 
+#if 1
+uint8_t key_global[32] = {82,  142, 184, 64,  74,  105, 126, 65,  154, 116, 14,
+                          193, 208, 41,  8,   115, 158, 252, 228, 160, 79,  5,
+                          167, 185, 13,  159, 135, 113, 49,  209, 58,  68};
+#endif
+
 // Get AES key with hashchain in legato originated app form.
 int get_aes_key(uint8_t *key) {
 #if 1
@@ -68,7 +74,7 @@ int get_aes_key(uint8_t *key) {
   return 0;
 #endif
   char hash_chain_res[MAXLINE];
-  char cmd[] = "cm sim info";  // TODO Use the right command
+  char cmd[] = "cm sim info"; // TODO Use the right command
   FILE *fp;
 
   fp = popen(cmd, "r");
@@ -185,14 +191,15 @@ int aes_decrypt(unsigned char *ciphertext, int ciphertext_len,
   return plaintext_len;
 }
 
-#if 1
-static uint8_t iv_global[16] = {};
+#if 0
+static uint8_t iv_global[16] = {164, 3, 98, 193, 52, 162, 107, 252, 184, 42, 74, 225, 157, 26, 88, 72};
 #endif
 
 int encrypt(unsigned char *plaintext, int plaintext_len,
             unsigned char *ciphertext, uint32_t *ciphertext_len, uint8_t *iv) {
   char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1] = {}, device_id[IMSI_LEN + 1];
   uint8_t key[AES_BLOCK_SIZE * 2] = {};
+  OpenSSL_add_all_digests();
   // step 1 fetch Device_ID (IMSI, len <= 15)
   get_device_id(device_id);
 
@@ -201,7 +208,7 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   // step 3 concatenate (Device_ID, timestamp)
   snprintf(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN, "%s-%ld", device_id, timestamp);
   // TODO step 4 hash above string with sha128 and used it as IV
-  OpenSSL_add_all_digests();
+
   const EVP_MD *hash = EVP_get_digestbyname(SHA_TYPE);
   const struct hash_chain iv_hash = hash_chain_create(
       nonce, IMSI_LEN + MAX_TIMESTAMP_LEN, EVP_get_digestbyname(SHA_TYPE), 1);
@@ -210,10 +217,17 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   // AES key hashchain would be another leagato original application
   unsigned char *buffer = NULL;
   get_aes_key((uint8_t *)key);
+#if 1
   for (int i = 0; i < 16; i++) {
     iv[i] = iv_hash.data[i] ^ iv_hash.data[i + 16];
   }
-  *ciphertext_len = aes_encrypt(plaintext, plaintext_len, key, iv, ciphertext);
+  *ciphertext_len =
+      aes_encrypt(plaintext, plaintext_len, key_global, iv, ciphertext);
+#else
+  *ciphertext_len =
+      aes_encrypt(plaintext, plaintext_len, key_global, iv_global, ciphertext);
+  memcpy(iv, &iv_global, AES_BLOCK_SIZE);
+#endif
 
   free(iv_hash.data);
 
@@ -221,16 +235,15 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   return 0;
 }
 
-int decrypt(unsigned char *ciphertext, int ciphertext_len, uint8_t *iv,
+int decrypt(unsigned char *ciphertext, uint32_t ciphertext_len, uint8_t *iv,
             unsigned char *plaintext) {
   char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1] = {};
   uint8_t key[AES_BLOCK_SIZE * 2] = {};
-
   OpenSSL_add_all_digests();
   // TODO step 5 request the hash of current order from hashchain and use it as
   // AES key hashchain would be another leagato original application
   get_aes_key(key);
-  aes_decrypt(ciphertext, ciphertext_len, key, iv, plaintext);
+  aes_decrypt(ciphertext, ciphertext_len, key_global, iv, plaintext);
   EVP_cleanup();
   return 0;
 }

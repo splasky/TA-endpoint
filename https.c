@@ -157,7 +157,7 @@ static int http_parse(HTTP_INFO *hi) {
   p1 = hi->r_buf;
 
   while (true) {
-    if (hi->header_end == false)  // header parser
+    if (hi->header_end == false) // header parser
     {
       if ((p2 = strstr(p1, "\r\n")) != NULL) {
         len = (long)(p2 - p1);
@@ -165,10 +165,10 @@ static int http_parse(HTTP_INFO *hi) {
 
         if (len > 0) {
           http_header(hi, p1);
-          p1 = p2 + 2;  // skip CR+LF
+          p1 = p2 + 2; // skip CR+LF
         } else {
-          hi->header_end = true;  // reach the header-end.
-          p1 = p2 + 2;            // skip CR+LF
+          hi->header_end = true; // reach the header-end.
+          p1 = p2 + 2;           // skip CR+LF
 
           if (hi->response.chunked == true) {
             len = hi->r_len - (p1 - hi->r_buf);
@@ -180,7 +180,7 @@ static int http_parse(HTTP_INFO *hi) {
                 } else {
                   hi->response.content_length += hi->length;
                 }
-                p1 = p2 + 2;  // skip CR+LF
+                p1 = p2 + 2; // skip CR+LF
               } else {
                 // copy the data as chunked size ...
                 strncpy(hi->r_buf, p1, len);
@@ -214,7 +214,7 @@ static int http_parse(HTTP_INFO *hi) {
 
         break;
       }
-    } else  // body parser
+    } else // body parser
     {
       if (hi->response.chunked == true && hi->length == -1) {
         len = hi->r_len - (p1 - hi->r_buf);
@@ -228,7 +228,7 @@ static int http_parse(HTTP_INFO *hi) {
               hi->response.content_length += hi->length;
             }
 
-            p1 = p2 + 2;  // skip CR+LF
+            p1 = p2 + 2; // skip CR+LF
           } else {
             // copy the remain data as chunked size
             strncpy(hi->r_buf, p1, len);
@@ -266,7 +266,7 @@ static int http_parse(HTTP_INFO *hi) {
             len -= hi->length;
 
             if (hi->response.chunked == true && len >= 2) {
-              p1 += 2;  // skip CR+LF
+              p1 += 2; // skip CR+LF
               hi->length = -1;
             } else {
               return error;
@@ -408,7 +408,8 @@ static int mbedtls_net_connect_timeout(mbedtls_net_context *ctx,
 
         ret = select(fd + 1, NULL, &fds, NULL, timeout == 0 ? NULL : &tv);
         if (ret == -1) {
-          if (errno == EINTR) continue;
+          if (errno == EINTR)
+            continue;
         } else if (ret == 0) {
           close(fd);
           ctx->fd = -1;
@@ -766,7 +767,7 @@ http_retcode_t http_read_chunked(HTTP_INFO *hi, char *response, int size) {
     } else if (ret < 0) {
       https_close(hi);
       _error = ret;
-      
+
       // TODO fix error -26624
       printf("error: https_read error\n");
       return _error;

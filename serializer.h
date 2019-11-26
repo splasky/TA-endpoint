@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 int serialize_msg(uint8_t *iv, uint32_t ciphertext_len, uint8_t *ciphertext,
-                  char *out_msg);
+                  char *out_msg, uint32_t *out_msg_len);
 int deserialize_msg(char *msg, uint8_t *iv, uint32_t *ciphertext_len,
                     uint8_t *ciphertext);
 
@@ -24,4 +24,4 @@ int deserialize_msg(char *msg, uint8_t *iv, uint32_t *ciphertext_len,
 }
 #endif
 
-#endif  // SERIALIZER_H
+#endif // SERIALIZER_H

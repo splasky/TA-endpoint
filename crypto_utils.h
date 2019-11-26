@@ -17,11 +17,16 @@ extern "C" {
 
 int encrypt(unsigned char *plaintext, int plaintext_len,
             unsigned char *ciphertext, uint32_t *ciphertext_len, uint8_t *iv);
-int decrypt(unsigned char *ciphertext, int ciphertext_len, uint8_t *iv,
+int decrypt(unsigned char *ciphertext, uint32_t ciphertext_len, uint8_t *iv,
             unsigned char *plaintext);
+int aes_encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
+                unsigned char *iv, unsigned char *ciphertext);
+int aes_decrypt(unsigned char *ciphertext, int ciphertext_len,
+                unsigned char *key, unsigned char *iv,
+                unsigned char *plaintext);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // CRYPTO_UTILS_H
+#endif // CRYPTO_UTILS_H

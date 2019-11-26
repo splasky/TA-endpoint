@@ -5,12 +5,12 @@
 #ifndef HTTPS_CLIENT_HTTPS_H
 #define HTTPS_CLIENT_HTTPS_H
 
-#include <stdbool.h>
 #include "mbedtls/certs.h"
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/error.h"
 #include "mbedtls/net.h"
+#include <stdbool.h>
 
 #define H_FIELD_SIZE 512
 #define H_READ_SIZE 2048
@@ -80,4 +80,4 @@ http_retcode_t http_write(HTTP_INFO *hi, char *data, int len);
 http_retcode_t http_write_end(HTTP_INFO *hi);
 http_retcode_t http_read_chunked(HTTP_INFO *hi, char *response, int size);
 int https_init(HTTP_INFO *hi, bool https, bool verify);
-#endif  // HTTPS_CLIENT_HTTPS_H
+#endif // HTTPS_CLIENT_HTTPS_H

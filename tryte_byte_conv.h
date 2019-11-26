@@ -9,15 +9,19 @@
 #ifndef TRYTE_BYTE_CONV_H
 #define TRYTE_BYTE_CONV_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void ascii_to_trytes(unsigned char const *const input, char *const output);
-void trytes_to_ascii(unsigned char const *const input, char *const output);
+void bytes_to_trytes(unsigned char const *const input, uint16_t len,
+                     char *output);
+void trytes_to_bytes(unsigned char const *const input, uint32_t input_len,
+                     char *const output);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // TRYTE_BYTE_CONV_H
+#endif // TRYTE_BYTE_CONV_H
