@@ -1,3 +1,14 @@
+ifeq ($(ARM), y)
+CROSS = arm-linux-gnueabi-
+CC = $(CROSS)gcc
+CXX = $(CROSS)g++
+AR = $(CROSS)ar
+RANLIB = $(CROSS)ranlib
+LD = $(CROSS)ld
+STRIP = $(CROSS)strip
+export CC CXX AR RANLIB
+endif
+
 ROOT_DIR = $(CURDIR)
 MBEDTLS = $(ROOT_DIR)/mbedtls
 
@@ -23,14 +34,19 @@ mbedtls_make:
 
 ta_client: mbedtls_make $(OBJS)
 	@echo Linking: $@ ....
-	#$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -L$(ROOT_DIR)/third_party/openssl -lcrypto
-	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -lasan -lcrypto
-#	$(STRIP) -s $@
+ifeq ($(ARM), y)
+	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -L$(ROOT_DIR)/third_party/openssl -lcrypto
+else
+	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -lcrypto
+endif
 
 %.o: %.c
 	@echo Compiling: $< ....
-	#$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I../openssl/include
-	$(CC) -g -c $(CFLAGS) $(INCLUDES) -o $@ $^
+ifeq ($(ARM), y)
+	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I$(ROOT_DIR)/third_party/openssl/include
+else
+	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^
+endif
 
 test: 
 	$(CC) -g -o test_tryte_byte_conv test_tryte_byte_conv.c tryte_byte_conv.c
