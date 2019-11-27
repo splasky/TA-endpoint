@@ -28,8 +28,8 @@ const uint16_t payload_len = 263;
 
 int main() {
   uint8_t out[1024], iv_out[16], payload_out[1024];
-  uint32_t payload_len_out;
-  int rc1 = serialize_msg(iv, payload_len, payload, out);
+  uint32_t payload_len_out, out_msg_len;
+  int rc1 = serialize_msg(iv, payload_len, payload, out, &out_msg_len);
   int rc2 = deserialize_msg(out, iv_out, &payload_len_out, payload_out);
 
   out[1023] = 0;
