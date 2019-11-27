@@ -15,7 +15,7 @@ MBEDTLS = $(ROOT_DIR)/mbedtls
 CFLAGS = -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2 -g3
 LDFLAGS =
 
-INCLUDES = -I$(MBEDTLS)/include
+INCLUDES = -I$(MBEDTLS)/include -I$(ROOT_DIR)/third_party/openssl/include
 LIBS = $(MBEDTLS)/library/libmbedx509.a $(MBEDTLS)/library/libmbedtls.a $(MBEDTLS)/library/libmbedcrypto.a
 
 SOURCES = main.c https.c crypto_utils.c serializer.c tryte_byte_conv.c
@@ -34,19 +34,11 @@ mbedtls_make:
 
 ta_client: mbedtls_make $(OBJS)
 	@echo Linking: $@ ....
-ifeq ($(ARM), y)
-	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS)  -L$(ROOT_DIR)/third_party/openssl -lcrypto
-else
-	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -lcrypto
-endif
+	$(CC) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -L$(ROOT_DIR)/third_party/openssl -lcrypto
 
 %.o: %.c
 	@echo Compiling: $< ....
-ifeq ($(ARM), y)
-	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^ -I$(ROOT_DIR)/third_party/openssl/include
-else
 	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^
-endif
 
 test: 
 	$(CC) -g -o test_tryte_byte_conv test_tryte_byte_conv.c tryte_byte_conv.c
