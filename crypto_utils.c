@@ -1,5 +1,4 @@
 #include "crypto_utils.h"
-#include "third_party/hashchain/hashchain.c"
 #include <openssl/bio.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
@@ -11,7 +10,7 @@
 #define OPENSSL_SUCCESS 1
 #define FAILED 1
 #define AES_BLOCK_SIZE 16
-#define CIPHER_LEN_PKCS5(plain_text)                                           \
+#define CIPHER_LEN_PKCS5(plain_text) \
   (strlen(plain_text) / AES_BLOCK_SIZE + 1) * AES_BLOCK_SIZE
 
 #define MAXLINE 1024
@@ -74,7 +73,7 @@ int get_aes_key(uint8_t *key) {
   return 0;
 #endif
   char hash_chain_res[MAXLINE];
-  char cmd[] = "cm sim info"; // TODO Use the right command
+  char cmd[] = "cm sim info";  // TODO Use the right command
   FILE *fp;
 
   fp = popen(cmd, "r");
@@ -195,6 +194,29 @@ int aes_decrypt(unsigned char *ciphertext, int ciphertext_len,
 static uint8_t iv_global[16] = {164, 3, 98, 193, 52, 162, 107, 252, 184, 42, 74, 225, 157, 26, 88, 72};
 #endif
 
+static uint8_t *hash_sha(void *base, int baselen, const EVP_MD *type) {
+  EVP_MD_CTX *ctx;
+  // struct hash_chain output;
+
+  // Allocate space for our hash chain.
+  int digest_size = EVP_MD_size(type);
+  uint8_t *data = calloc(1, digest_size);
+
+  // Hash the base data.
+  ctx = EVP_MD_CTX_create();
+  EVP_DigestInit_ex(ctx, type, NULL);
+  EVP_DigestUpdate(ctx, base, baselen);
+  EVP_DigestFinal_ex(ctx, data, NULL);
+
+  EVP_DigestInit_ex(ctx, type, NULL);
+  EVP_DigestUpdate(ctx, data, digest_size);
+  EVP_DigestFinal_ex(ctx, data, NULL);
+  // Cleanup and return the chain.
+  EVP_MD_CTX_destroy(ctx);
+
+  return data;
+}
+
 int encrypt(unsigned char *plaintext, int plaintext_len,
             unsigned char *ciphertext, uint32_t *ciphertext_len, uint8_t *iv) {
   char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1] = {}, device_id[IMSI_LEN + 1];
@@ -210,8 +232,8 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   // TODO step 4 hash above string with sha128 and used it as IV
 
   const EVP_MD *hash = EVP_get_digestbyname(SHA_TYPE);
-  const struct hash_chain iv_hash = hash_chain_create(
-      nonce, IMSI_LEN + MAX_TIMESTAMP_LEN, EVP_get_digestbyname(SHA_TYPE), 1);
+  uint8_t *data = hash_sha(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN,
+                           EVP_get_digestbyname(SHA_TYPE));
 
   // TODO step 5 request the hash of current order from hashchain and use it as
   // AES key hashchain would be another leagato original application
@@ -219,7 +241,7 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   get_aes_key((uint8_t *)key);
 #if 1
   for (int i = 0; i < 16; i++) {
-    iv[i] = iv_hash.data[i] ^ iv_hash.data[i + 16];
+    iv[i] = data[i] ^ data[i + 16];
   }
   *ciphertext_len =
       aes_encrypt(plaintext, plaintext_len, key_global, iv, ciphertext);
@@ -229,7 +251,7 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   memcpy(iv, &iv_global, AES_BLOCK_SIZE);
 #endif
 
-  free(iv_hash.data);
+  free(data);
 
   EVP_cleanup();
   return 0;
