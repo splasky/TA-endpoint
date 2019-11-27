@@ -20,10 +20,16 @@ int serialize_msg(uint8_t *iv, uint32_t ciphertext_len, uint8_t *ciphertext,
   char *ptr = out_msg;
 
   sprintf(str_ciphertext_len, "%010d", ciphertext_len);
-  memcpy(ptr, iv, IV_LEN);
+  if (iv) {
+    memcpy(ptr, iv, IV_LEN);
+  } else {
+    memset(ptr, 0, IV_LEN);
+  }
   ptr += IV_LEN;
+
   memcpy(ptr, str_ciphertext_len, UINT32_LEN);
   ptr += UINT32_LEN;
+
   memcpy(ptr, ciphertext, ciphertext_len);
 
   *out_msg_len = IV_LEN + UINT32_LEN + ciphertext_len;
@@ -39,11 +45,12 @@ int deserialize_msg(char *msg, uint8_t *iv, uint32_t *ciphertext_len,
 
   memcpy(iv, ptr, IV_LEN);
   ptr += IV_LEN;
+
   memcpy(str_ciphertext_len, ptr, UINT32_LEN);
   ciphertext_len_tmp = atoi(str_ciphertext_len);
   ptr += UINT32_LEN;
-  memcpy(ciphertext, ptr, ciphertext_len_tmp);
 
+  memcpy(ciphertext, ptr, ciphertext_len_tmp);
   *ciphertext_len = ciphertext_len_tmp;
 
   return 0;
