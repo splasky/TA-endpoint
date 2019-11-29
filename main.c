@@ -15,7 +15,7 @@
 #define ADDRESS                                                                \
   "POWEREDBYTANGLEACCELERATOR999999999999999999999999999999999999999999999999" \
   "999999A"
-#define MSG "THISISMSG9THISISMSG9THISISMSG:%s"
+#define MSG "%s:THISISMSG9THISISMSG9THISISMSG"
 
 void gen_trytes(uint16_t len, char *out) {
   const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
