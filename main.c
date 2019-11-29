@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define HTTP_OK 200
 #define HOST "https://tangle-accel.biilabs.io/"
 #define API "transaction/"
 #define REQ_BODY                                                               \
@@ -25,31 +26,14 @@ void gen_trytes(uint16_t len, char *out) {
   }
 }
 
-int main(int argc, char *argv[]) {
-  char req_body[1024] = {}, response[4096] = {}, tryte_msg[1024] = {},
-       msg[1024] = {};
-  uint8_t ciphertext[1024] = {}, ciphertext_de[1024] = {}, iv1[16] = {},
-          iv2[16] = {};
-  int ret, size;
-  char url[] = HOST API;
-  HTTP_INFO http_info;
-
-  char msg_de[1024] = {}, plain[1024] = {};
-  uint32_t ciphertext_len = 0;
-  srand(time(NULL));
-  uint32_t raw_msg_len = strlen(MSG) + 81 + 1, msg_len;
-  char raw_msg[raw_msg_len], next_addr[82] = {};
-
-  gen_trytes(81, next_addr);
-  snprintf(raw_msg, raw_msg_len, MSG, next_addr);
-  encrypt(raw_msg, raw_msg_len, ciphertext, &ciphertext_len, iv1);
-  serialize_msg(iv1, ciphertext_len, ciphertext, msg, &msg_len);
-  bytes_to_trytes(msg, msg_len, tryte_msg);
-
-  // Init http session. verify: check the server CA cert.
-  https_init(&http_info, true, false);
-  while (ret != 200) {
-    if (http_open(&http_info, url) < 0) {
+int send_https_msg(HTTP_INFO *http_info, char const *const url,
+                   char const *const tryte_msg) {
+  char req_body[1024] = {}, response[4096] = {};
+  int ret = 0;
+  long size;
+  https_init(http_info, true, false);
+  while (ret != HTTP_OK) {
+    if (http_open(http_info, url) < 0) {
       http_strerror(req_body, 1024);
       printf("socket error: %s \n", req_body);
 
@@ -58,21 +42,21 @@ int main(int argc, char *argv[]) {
 
     sprintf(req_body, REQ_BODY, tryte_msg, ADDRESS);
     printf("body = %s \n", req_body);
-    http_info.request.close = false;
-    http_info.request.chunked = false;
-    snprintf(http_info.request.method, 8, "POST");
-    snprintf(http_info.request.content_type, 256, "application/json");
-    http_info.request.content_length = strlen(req_body);
-    size = http_info.request.content_length;
+    http_info->request.close = false;
+    http_info->request.chunked = false;
+    snprintf(http_info->request.method, 8, "POST");
+    snprintf(http_info->request.content_type, 256, "application/json");
+    http_info->request.content_length = strlen(req_body);
+    size = http_info->request.content_length;
 
-    if (http_write_header(&http_info) < 0) {
+    if (http_write_header(http_info) < 0) {
       http_strerror(req_body, 1024);
       printf("socket error: %s \n", req_body);
 
       goto error;
     }
 
-    if (http_write(&http_info, req_body, size) != size) {
+    if (http_write(http_info, req_body, size) != size) {
       http_strerror(req_body, 1024);
       printf("socket error: %s \n", req_body);
 
@@ -80,21 +64,47 @@ int main(int argc, char *argv[]) {
     }
 
     // Write end-chunked
-    if (http_write_end(&http_info) < 0) {
+    if (http_write_end(http_info) < 0) {
       http_strerror(req_body, 1024);
       printf("socket error: %s \n", req_body);
 
       goto error;
     }
 
-    ret = http_read_chunked(&http_info, response, sizeof(response));
+    ret = http_read_chunked(http_info, response, sizeof(response));
 
     printf("return code: %d \n", ret);
   }
-
   printf("return body: %s \n", response);
 
+error:
+  http_close(http_info);
+
+  return ret;
+}
+
+int main(int argc, char *argv[]) {
+  int ret, size;
+  HTTP_INFO http_info;
+
+  uint8_t ciphertext[1024] = {}, iv1[16] = {};
+  uint32_t raw_msg_len = strlen(MSG) + 81 + 1, ciphertext_len = 0, msg_len;
+  char tryte_msg[1024] = {}, msg[1024] = {}, url[] = HOST API,
+       raw_msg[raw_msg_len], next_addr[82] = {};
+  srand(time(NULL));
+
+  gen_trytes(81, next_addr);
+  snprintf(raw_msg, raw_msg_len, MSG, next_addr);
+  encrypt(raw_msg, raw_msg_len, ciphertext, &ciphertext_len, iv1);
+  serialize_msg(iv1, ciphertext_len, ciphertext, msg, &msg_len);
+  bytes_to_trytes(msg, msg_len, tryte_msg);
+
+  // Init http session. verify: check the server CA cert.
+  send_https_msg(&http_info, url, tryte_msg);
+
 #if 0
+  uint8_t ciphertext_de[1024] = {}, iv2[16] = {};
+  char msg_de[1024] = {}, plain[1024] = {};
   uint32_t ciphertext_len_de;
   trytes_to_bytes(tryte_msg, strlen(tryte_msg), msg_de);
   printf("strlen(tryte_msg) = %d \n", strlen(tryte_msg));
@@ -148,9 +158,6 @@ int main(int argc, char *argv[]) {
   printf("plain = %s \n", plain);
   sleep(1);
 #endif
-
-error:
-  http_close(&http_info);
 
   return 0;
 }
