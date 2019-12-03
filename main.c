@@ -2,6 +2,7 @@
 #include "https.h"
 #include "serializer.h"
 #include "tryte_byte_conv.h"
+#include "uart_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +16,9 @@
 #define ADDRESS                                                                \
   "POWEREDBYTANGLEACCELERATOR999999999999999999999999999999999999999999999999" \
   "999999A"
-#define MSG "%s:THISISMSG9THISISMSG9THISISMSG"
+#define ADDR_LEN 81
+//#define MSG "%s:THISISMSG9THISISMSG9THISISMSG"
+#define MSG "%s:%s"
 
 void gen_trytes(uint16_t len, char *out) {
   const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -27,7 +30,7 @@ void gen_trytes(uint16_t len, char *out) {
 }
 
 int send_https_msg(HTTP_INFO *http_info, char const *const url,
-                   char const *const tryte_msg) {
+                   char const *const tryte_msg, char const *const addr) {
   char req_body[1024] = {}, response[4096] = {};
   int ret = 0;
   long size;
@@ -40,7 +43,7 @@ int send_https_msg(HTTP_INFO *http_info, char const *const url,
       goto error;
     }
 
-    sprintf(req_body, REQ_BODY, tryte_msg, ADDRESS);
+    sprintf(req_body, REQ_BODY, tryte_msg, addr);
     printf("body = %s \n", req_body);
     http_info->request.close = false;
     http_info->request.chunked = false;
@@ -88,19 +91,39 @@ int main(int argc, char *argv[]) {
   HTTP_INFO http_info;
 
   uint8_t ciphertext[1024] = {}, iv1[16] = {};
-  uint32_t raw_msg_len = strlen(MSG) + 81 + 1, ciphertext_len = 0, msg_len;
+  uint32_t raw_msg_len = strlen(MSG) + ADDR_LEN + 8, ciphertext_len = 0,
+           msg_len;
   char tryte_msg[1024] = {}, msg[1024] = {}, url[] = HOST API,
-       raw_msg[raw_msg_len], next_addr[82] = {};
+       raw_msg[raw_msg_len], next_addr[ADDR_LEN + 1] = {};
   srand(time(NULL));
 
-  gen_trytes(81, next_addr);
-  snprintf(raw_msg, raw_msg_len, MSG, next_addr);
-  encrypt(raw_msg, raw_msg_len, ciphertext, &ciphertext_len, iv1);
-  serialize_msg(iv1, ciphertext_len, ciphertext, msg, &msg_len);
-  bytes_to_trytes(msg, msg_len, tryte_msg);
+  int fd = uart_init();
+  if (fd < 0) {
+    printf("Error opening UART\n");
+    return -1;
+  }
+  char *response = NULL, *addr = ADDRESS;
 
-  // Init http session. verify: check the server CA cert.
-  send_https_msg(&http_info, url, tryte_msg);
+  while (true) {
+    while (response = uart_read(fd)) {
+      gen_trytes(ADDR_LEN, next_addr);
+
+      // int gen_value = rand() % 1000; // TODO this could be changed to the
+      // real transmitted data
+      snprintf(raw_msg, raw_msg_len, MSG, next_addr, response);
+
+      encrypt(raw_msg, strlen(raw_msg), ciphertext, &ciphertext_len, iv1);
+      serialize_msg(iv1, ciphertext_len, ciphertext, msg, &msg_len);
+      bytes_to_trytes(msg, msg_len, tryte_msg);
+
+      // Init http session. verify: check the server CA cert.
+      send_https_msg(&http_info, url, tryte_msg, addr);
+
+      strncpy(addr, next_addr, ADDR_LEN);
+      free(response);
+      response = NULL;
+    }
+  }
 
 #if 0
   uint8_t ciphertext_de[1024] = {}, iv2[16] = {};

@@ -18,7 +18,7 @@ LDFLAGS =
 INCLUDES = -I$(MBEDTLS)/include -I$(ROOT_DIR)/third_party/openssl/include
 LIBS = $(MBEDTLS)/library/libmbedx509.a $(MBEDTLS)/library/libmbedtls.a $(MBEDTLS)/library/libmbedcrypto.a
 
-SOURCES = main.c https.c crypto_utils.c serializer.c tryte_byte_conv.c
+SOURCES = main.c https.c crypto_utils.c serializer.c tryte_byte_conv.c uart_utils.c
 
 OBJS = $(SOURCES:.c=.o)
 

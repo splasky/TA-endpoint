@@ -219,8 +219,8 @@ static uint8_t *hash_sha(void *base, int baselen, const EVP_MD *type) {
 
 int encrypt(unsigned char *plaintext, int plaintext_len,
             unsigned char *ciphertext, uint32_t *ciphertext_len, uint8_t *iv) {
-  char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1] = {}, device_id[IMSI_LEN + 1];
-  uint8_t key[AES_BLOCK_SIZE * 2] = {};
+  char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1 + 1] = {0}, device_id[IMSI_LEN + 1] = {0};
+  uint8_t key[AES_BLOCK_SIZE * 2] = {0};
   OpenSSL_add_all_digests();
   // step 1 fetch Device_ID (IMSI, len <= 15)
   get_device_id(device_id);
@@ -228,7 +228,7 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   // step 2 fetch timestamp
   uint64_t timestamp = time(NULL);
   // step 3 concatenate (Device_ID, timestamp)
-  snprintf(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN, "%s-%ld", device_id, timestamp);
+  snprintf(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN + 1, "%s-%ld", device_id, timestamp);
   // TODO step 4 hash above string with sha128 and used it as IV
 
   const EVP_MD *hash = EVP_get_digestbyname(SHA_TYPE);
