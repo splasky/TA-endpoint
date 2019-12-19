@@ -31,8 +31,8 @@
 # Debug files
 *.dSYM/
 
-https_client
 ta_client
 build/
 .vscode/
 *.gcno
+addr_log.log

@@ -2,3 +2,9 @@
 	path = third_party/openssl
 	url = https://github.com/openssl/openssl.git
 	branch = OpenSSL_1_1_0-stable
+[submodule "third_party/mbedtls"]
+	path = third_party/mbedtls
+	url = https://github.com/ARMmbed/mbedtls.git
+[submodule "third_party/http-parser"]
+	path = third_party/http-parser
+	url = https://github.com/nodejs/http-parser.git

@@ -1,15 +1,18 @@
+#include "conn_http.h"
 #include "crypto_utils.h"
-#include "https.h"
+#include "http_parser.h"
 #include "serializer.h"
 #include "tryte_byte_conv.h"
 #include "uart_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 
-#define HTTP_OK 200
-#define HOST "https://tangle-accel.biilabs.io/"
+#define HOST "tangle-accel.puyuma.org"
+#define PORT "443"
 #define API "transaction/"
+#define SSL_SEED "nonce"
 #define REQ_BODY                                                               \
   "{\"value\": 0, \"tag\": \"POWEREDBYTANGLEACCELERATOR9\", \"message\": "     \
   "\"%s\", \"address\":\"%s\"}\r\n\r\n"
@@ -17,8 +20,13 @@
   "POWEREDBYTANGLEACCELERATOR999999999999999999999999999999999999999999999999" \
   "999999A"
 #define ADDR_LEN 81
-//#define MSG "%s:THISISMSG9THISISMSG9THISISMSG"
+
+#ifndef DEBUG
 #define MSG "%s:%s"
+#else
+#define MSG "%s:THISISMSG9THISISMSG9THISISMSG"
+#define ADDR_LOG_PATH "addr_log.log"
+#endif
 
 void gen_trytes(uint16_t len, char *out) {
   const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -29,157 +37,120 @@ void gen_trytes(uint16_t len, char *out) {
   }
 }
 
-int send_https_msg(HTTP_INFO *http_info, char const *const url,
-                   char const *const tryte_msg, char const *const addr) {
-  char req_body[1024] = {}, response[4096] = {};
-  int ret = 0;
-  long size;
-  https_init(http_info, true, false);
-  while (ret != HTTP_OK) {
-    if (http_open(http_info, url) < 0) {
-      http_strerror(req_body, 1024);
-      printf("socket error: %s \n", req_body);
+void send_https_msg(char const *const host, char const *const port,
+                    char const *const api, char const *const tryte_msg,
+                    char const *const addr) {
+  char req_body[1024] = {}, res[4096] = {0};
+  char *req = NULL;
+  sprintf(req_body, REQ_BODY, tryte_msg, addr);
+  set_post_request(api, host, atoi(port), req_body, &req);
 
-      goto error;
-    }
+#ifdef DEBUG
+  printf("req packet = \n%s", req);
+#endif
 
-    sprintf(req_body, REQ_BODY, tryte_msg, addr);
-    printf("body = %s \n", req_body);
-    http_info->request.close = false;
-    http_info->request.chunked = false;
-    snprintf(http_info->request.method, 8, "POST");
-    snprintf(http_info->request.content_type, 256, "application/json");
-    http_info->request.content_length = strlen(req_body);
-    size = http_info->request.content_length;
+  http_parser_settings settings;
+  settings.on_body = parser_body_callback;
+  http_parser *parser = malloc(sizeof(http_parser));
 
-    if (http_write_header(http_info) < 0) {
-      http_strerror(req_body, 1024);
-      printf("socket error: %s \n", req_body);
-
-      goto error;
-    }
-
-    if (http_write(http_info, req_body, size) != size) {
-      http_strerror(req_body, 1024);
-      printf("socket error: %s \n", req_body);
-
-      goto error;
-    }
-
-    // Write end-chunked
-    if (http_write_end(http_info) < 0) {
-      http_strerror(req_body, 1024);
-      printf("socket error: %s \n", req_body);
-
-      goto error;
-    }
-
-    ret = http_read_chunked(http_info, response, sizeof(response));
-
-    printf("return code: %d \n", ret);
+  while (parser->status_code != HTTP_OK) {
+    connect_info_t info = {.https = true};
+    http_open(&info, SSL_SEED, host, port);
+    http_send_request(&info, req);
+    http_read_response(&info, res, sizeof(res) / sizeof(char));
+    http_close(&info);
+    http_parser_init(parser, HTTP_RESPONSE);
+    size_t nparsed = http_parser_execute(parser, &settings, res, strlen(res));
+    printf("HTTP Response: %s\n", http_res_body);
+    free(http_res_body);
+    http_res_body = NULL;
   }
-  printf("return body: %s \n", response);
-
-error:
-  http_close(http_info);
-
-  return ret;
+  free(parser);
 }
 
 int main(int argc, char *argv[]) {
   int ret, size;
-  HTTP_INFO http_info;
 
-  uint8_t ciphertext[1024] = {}, iv1[16] = {};
-  uint32_t raw_msg_len = strlen(MSG) + ADDR_LEN + 8, ciphertext_len = 0,
-           msg_len;
-  char tryte_msg[1024] = {}, msg[1024] = {}, url[] = HOST API,
-       raw_msg[raw_msg_len], next_addr[ADDR_LEN + 1] = {};
+  uint8_t ciphertext[1024] = {0}, iv[16] = {0};
+  uint32_t raw_msg_len = 1 + ADDR_LEN + 20, ciphertext_len = 0, msg_len;
+  char tryte_msg[1024] = {0}, msg[1024] = {0}, url[] = HOST API,
+       raw_msg[1000] = {0}, addr[ADDR_LEN + 1] = ADDRESS,
+       next_addr[ADDR_LEN + 1] = {0}, addr_log_template[] = "\n%s\n",
+       addr_log[ADDR_LEN + 3];
   srand(time(NULL));
 
+#ifndef DEBUG
   int fd = uart_init();
   if (fd < 0) {
-    printf("Error opening UART\n");
+    printf("Error in initializing UART\n");
     return -1;
   }
-  char *response = NULL, *addr = ADDRESS;
+#else
+  FILE *fp = fopen(ADDR_LOG_PATH, "a");
+  snprintf(addr_log, 83, addr_log_template, next_addr);
+  fputs(addr_log, fp);
+  fclose(fp);
+#endif
 
+  char *response = NULL;
+  time_t timer;
+  char time_str[26];
+  struct tm *tm_info;
+
+#ifndef DEBUG
+  fd_set rset;
+  struct timeval tv;
+  tv.tv_sec = 0;
+  tv.tv_usec = 500;
   while (true) {
-    while (response = uart_read(fd)) {
+    // TODO add select
+    FD_ZERO(&rset);
+    FD_SET(fd, &rset);
+    select(fd + 1, &rset, NULL, NULL, &tv);
+
+    if (FD_ISSET(fd, &rset)) {
+#endif
+      time(&timer);
+      tm_info = localtime(&timer);
+      strftime(time_str, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+      printf("%s\n", time_str);
+
       gen_trytes(ADDR_LEN, next_addr);
 
-      // int gen_value = rand() % 1000; // TODO this could be changed to the
+#ifndef DEBUG
+      response = uart_read(fd);
+#else
+  response = strdup("This is a test");
+  printf("next_addr = %s \n", next_addr);
+
+  // Append the next address to the address log file
+  fp = fopen(ADDR_LOG_PATH, "a");
+  snprintf(addr_log, 83, addr_log_template, next_addr);
+  fputs(addr_log, fp);
+  fclose(fp);
+#endif
       // real transmitted data
       snprintf(raw_msg, raw_msg_len, MSG, next_addr, response);
+      printf("Raw Message: %s\n", raw_msg);
+      encrypt(raw_msg, strlen(raw_msg), ciphertext, &ciphertext_len, iv);
 
-      encrypt(raw_msg, strlen(raw_msg), ciphertext, &ciphertext_len, iv1);
-      serialize_msg(iv1, ciphertext_len, ciphertext, msg, &msg_len);
+      serialize_msg(iv, ciphertext_len, ciphertext, msg, &msg_len);
       bytes_to_trytes(msg, msg_len, tryte_msg);
 
       // Init http session. verify: check the server CA cert.
-      send_https_msg(&http_info, url, tryte_msg, addr);
+      send_https_msg(HOST, PORT, API, tryte_msg, addr);
 
       strncpy(addr, next_addr, ADDR_LEN);
       free(response);
       response = NULL;
+      printf("========================Finishing Sending "
+             "Transaction========================\n\n");
+#ifndef DEBUG
+    }
+    if (tcflush(fd, TCIOFLUSH) != 0) {
+      perror("tcflush error");
     }
   }
-
-#if 0
-  uint8_t ciphertext_de[1024] = {}, iv2[16] = {};
-  char msg_de[1024] = {}, plain[1024] = {};
-  uint32_t ciphertext_len_de;
-  trytes_to_bytes(tryte_msg, strlen(tryte_msg), msg_de);
-  printf("strlen(tryte_msg) = %d \n", strlen(tryte_msg));
-  deserialize_msg(msg_de, iv2, &ciphertext_len_de, ciphertext_de);
-  printf("tryte_msg = %s \n", tryte_msg);
-  if (!memcmp(msg, msg_de, strlen(tryte_msg) / 2)) {
-    printf("msg SUCCESS \n");
-  } else {
-    printf("msg Failed \n");
-    for (int j = 0; j < strlen(tryte_msg) / 2; j++) {
-      printf("j = %d, msg = %d, msg_de = %d \n", j, msg[j], msg_de[j]);
-    }
-    return 1;
-  }
-  if (ciphertext_len == ciphertext_len_de) {
-    printf("ciphertext_len SUCCESS \n");
-  } else {
-    printf("ciphertext_len Failed \n");
-    return 1;
-  }
-
-  if (!memcmp(iv1, iv2, 16)) {
-    printf("iv SUCCESS \n");
-  } else {
-    printf("iv Failed \n");
-    return 1;
-  }
-  if (ciphertext_len != ciphertext_len_de) {
-    printf("ciphertext_len = %d, ciphertext_len_de = %d\n", ciphertext_len,
-           ciphertext_len_de);
-    return 1;
-  }
-  if (!memcmp(ciphertext, ciphertext_de, ciphertext_len)) {
-    printf("ciphertext SUCCESS \n");
-  } else {
-    printf("ciphertext Failed \n");
-    for (int j = 0; j < ciphertext_len; j++) {
-      if (ciphertext[j] != ciphertext_de[j]) {
-        printf("=======j = %d, ciphertext = %d, ciphertext_de = %d======= \n",
-               j, ciphertext[j], ciphertext_de[j]);
-      } else {
-        printf("j = %d, ciphertext = %d, ciphertext_de = %d \n", j,
-               ciphertext[j], ciphertext_de[j]);
-      }
-    }
-    return 1;
-  }
-
-  decrypt(ciphertext, ciphertext_len_de, iv2, plain);
-
-  printf("plain = %s \n", plain);
-  sleep(1);
 #endif
 
   return 0;
