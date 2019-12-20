@@ -53,7 +53,7 @@ http_retcode_t http_open(connect_info_t *const info,
       free(info->ctr_drbg);
       free(info->entropy);
       free(info->cacert);
-      return ret_error;
+      return RET_HTTP_INIT;
     }
 
     // TODO Change the PEM file path
@@ -62,14 +62,14 @@ http_retcode_t http_open(connect_info_t *const info,
                                  mbedtls_test_cas_pem_len);
     if (ret < 0) {
       printf("error: mbedtls_x509_crt_parse returned -0x%x\n\n", -ret);
-      return ret_error;
+      return RET_HTTP_CERT;
     }
   }
 
   ret = mbedtls_net_connect(info->net_ctx, host, port, MBEDTLS_NET_PROTO_TCP);
   if (ret != 0) {
     printf("error: mbedtls_net_connect returned %d\n\n", ret);
-    return ret_error;
+    return RET_HTTP_CONNECT;
   }
 
   ret = mbedtls_ssl_config_defaults(info->ssl_config, MBEDTLS_SSL_IS_CLIENT,
@@ -77,7 +77,7 @@ http_retcode_t http_open(connect_info_t *const info,
                                     MBEDTLS_SSL_PRESET_DEFAULT);
   if (ret != 0) {
     printf("error: mbedtls_ssl_config_defaults returned %d\n\n", ret);
-    return ret_error;
+    return RET_HTTP_SSL;
   }
 
   // TODO we may need to set the mode into MBEDTLS_SSL_VERIFY_REQUIRED
@@ -90,13 +90,13 @@ http_retcode_t http_open(connect_info_t *const info,
   ret = mbedtls_ssl_setup(info->ssl_ctx, info->ssl_config);
   if (ret != 0) {
     printf("error: mbedtls_ssl_setup returned %d\n\n", ret);
-    return ret_error;
+    return RET_HTTP_SSL;
   }
 
   ret = mbedtls_ssl_set_hostname(info->ssl_ctx, host);
   if (ret != 0) {
     printf("error: mbedtls_ssl_set_hostname returned %d\n\n", ret);
-    return ret_error;
+    return RET_HTTP_SSL;
   }
 
   // Here is Blocking mode
@@ -107,7 +107,7 @@ http_retcode_t http_open(connect_info_t *const info,
   while (ret != 0) {
     if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
       printf("error: mbedtls_ssl_handshake returned -0x%x\n\n", -ret);
-      return ret_error;
+      return RET_HTTP_SSL;
     }
   }
 
@@ -122,7 +122,7 @@ http_retcode_t http_open(connect_info_t *const info,
     printf("error: %s\n", vrfy_buf);
   }
 #endif
-  return ret_success;
+  return RET_OK;
 }
 
 http_retcode_t http_send_request(connect_info_t *const info,
@@ -144,7 +144,7 @@ http_retcode_t http_send_request(connect_info_t *const info,
     if (ret_len == MBEDTLS_ERR_SSL_WANT_WRITE) {
       continue;
     } else if (ret_len <= 0) {
-      return ret_write_err;
+      return RET_WRITE_ERROR;
     }
     write_len += ret_len;
   }
@@ -197,7 +197,7 @@ http_retcode_t http_close(connect_info_t *const info) {
     free(info->net_ctx);
   }
 
-  return ret_success;
+  return RET_OK;
 }
 
 http_retcode_t set_post_request(char const *const api, char const *const host,
@@ -215,12 +215,12 @@ http_retcode_t set_post_request(char const *const api, char const *const host,
                    MAX_PORT_LEN + MAX_CONTENT_LENGTH_LEN + strlen(req_body);
   *out = (char *)malloc(sizeof(char) * out_len);
   if (!*out) {
-    return ret_oom;
+    return RET_OOM;
   }
   snprintf(*out, out_len, post_req_format, api, host, port,
            (int)strlen(req_body), req_body);
 
-  return ret_success;
+  return RET_OK;
 }
 
 http_retcode_t set_get_request(char const *const api, char const *const host,
@@ -233,11 +233,11 @@ http_retcode_t set_get_request(char const *const api, char const *const host,
       strlen(get_req_format) + strlen(api) + strlen(host) + MAX_PORT_LEN;
   *out = (char *)malloc(sizeof(char) * out_len);
   if (!*out) {
-    return ret_oom;
+    return RET_OOM;
   }
   snprintf(*out, out_len, get_req_format, api, host, port);
 
-  return ret_success;
+  return RET_OK;
 }
 
 int parser_body_callback(http_parser *parser, const char *at, size_t length) {

@@ -21,17 +21,11 @@ extern "C" {
 #include "mbedtls/net.h"
 #include "mbedtls/ssl.h"
 #include <stdbool.h>
+#include "defined_error.h"
 
 #define HTTP_OK 200
 
 char *http_res_body;
-
-typedef enum {
-  ret_success = 0,
-  ret_error = -1,
-  ret_write_err = 1,
-  ret_oom = 2
-} http_retcode_t;
 
 typedef struct {
   bool https;

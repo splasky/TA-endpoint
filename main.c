@@ -1,9 +1,9 @@
-#include "conn_http.h"
-#include "crypto_utils.h"
+#include "connectivity/conn_http.h"
+#include "utils/crypto_utils.h"
+#include "utils/serializer.h"
+#include "utils/tryte_byte_conv.h"
+#include "utils/uart_utils.h"
 #include "http_parser.h"
-#include "serializer.h"
-#include "tryte_byte_conv.h"
-#include "uart_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -10,7 +10,7 @@
 #define OPENSSL_SUCCESS 1
 #define FAILED 1
 #define AES_BLOCK_SIZE 16
-#define CIPHER_LEN_PKCS5(plain_text) \
+#define CIPHER_LEN_PKCS5(plain_text)                                           \
   (strlen(plain_text) / AES_BLOCK_SIZE + 1) * AES_BLOCK_SIZE
 
 #define MAXLINE 1024
@@ -57,23 +57,24 @@ int get_device_id(char *device_id) {
   return 0;
 }
 
-#if 1
+#ifdef KEY_DEBUG
 uint8_t key_global[32] = {82,  142, 184, 64,  74,  105, 126, 65,  154, 116, 14,
                           193, 208, 41,  8,   115, 158, 252, 228, 160, 79,  5,
                           167, 185, 13,  159, 135, 113, 49,  209, 58,  68};
 #endif
+#ifdef IV_DEBUG
+static uint8_t iv_global[16] = {164, 3,  98, 193, 52,  162, 107, 252,
+                                184, 42, 74, 225, 157, 26,  88,  72};
+#endif
 
 // Get AES key with hashchain in legato originated app form.
 int get_aes_key(uint8_t *key) {
-#if 1
-  uint8_t key_init[32] = {82,  142, 184, 64,  74,  105, 126, 65,  154, 116, 14,
-                          193, 208, 41,  8,   115, 158, 252, 228, 160, 79,  5,
-                          167, 185, 13,  159, 135, 113, 49,  209, 58,  68};
-  memcpy(key, &key_init, 32);
+#ifdef KEY_DEBUG
+  memcpy(key, &key_global, 32);
   return 0;
 #endif
   char hash_chain_res[MAXLINE];
-  char cmd[] = "cm sim info";  // TODO Use the right command
+  char cmd[] = "cm sim info"; // TODO Use the right command
   FILE *fp;
 
   fp = popen(cmd, "r");
@@ -190,10 +191,6 @@ int aes_decrypt(unsigned char *ciphertext, int ciphertext_len,
   return plaintext_len;
 }
 
-#if 0
-static uint8_t iv_global[16] = {164, 3, 98, 193, 52, 162, 107, 252, 184, 42, 74, 225, 157, 26, 88, 72};
-#endif
-
 static uint8_t *hash_sha(void *base, int baselen, const EVP_MD *type) {
   EVP_MD_CTX *ctx;
   // struct hash_chain output;
@@ -219,7 +216,8 @@ static uint8_t *hash_sha(void *base, int baselen, const EVP_MD *type) {
 
 int encrypt(unsigned char *plaintext, int plaintext_len,
             unsigned char *ciphertext, uint32_t *ciphertext_len, uint8_t *iv) {
-  char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1 + 1] = {0}, device_id[IMSI_LEN + 1] = {0};
+  char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1 + 1] = {0},
+                                                device_id[IMSI_LEN + 1] = {0};
   uint8_t key[AES_BLOCK_SIZE * 2] = {0};
   OpenSSL_add_all_digests();
   // step 1 fetch Device_ID (IMSI, len <= 15)
@@ -228,7 +226,8 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   // step 2 fetch timestamp
   uint64_t timestamp = time(NULL);
   // step 3 concatenate (Device_ID, timestamp)
-  snprintf(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN + 1, "%s-%ld", device_id, timestamp);
+  snprintf(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN + 1, "%s-%ld", device_id,
+           timestamp);
   // TODO step 4 hash above string with sha128 and used it as IV
 
   const EVP_MD *hash = EVP_get_digestbyname(SHA_TYPE);
@@ -239,20 +238,17 @@ int encrypt(unsigned char *plaintext, int plaintext_len,
   // AES key hashchain would be another leagato original application
   unsigned char *buffer = NULL;
   get_aes_key((uint8_t *)key);
-#if 1
+
+#ifdef IV_DEBUG
+  memcpy(iv, &iv_global, AES_BLOCK_SIZE);
+#else
   for (int i = 0; i < 16; i++) {
     iv[i] = data[i] ^ data[i + 16];
   }
-  *ciphertext_len =
-      aes_encrypt(plaintext, plaintext_len, key_global, iv, ciphertext);
-#else
-  *ciphertext_len =
-      aes_encrypt(plaintext, plaintext_len, key_global, iv_global, ciphertext);
-  memcpy(iv, &iv_global, AES_BLOCK_SIZE);
 #endif
+  *ciphertext_len = aes_encrypt(plaintext, plaintext_len, key, iv, ciphertext);
 
   free(data);
-
   EVP_cleanup();
   return 0;
 }
@@ -265,7 +261,13 @@ int decrypt(unsigned char *ciphertext, uint32_t ciphertext_len, uint8_t *iv,
   // TODO step 5 request the hash of current order from hashchain and use it as
   // AES key hashchain would be another leagato original application
   get_aes_key(key);
-  aes_decrypt(ciphertext, ciphertext_len, key_global, iv, plaintext);
+
+#ifdef IV_DEBUG
+  aes_decrypt(ciphertext, ciphertext_len, key, iv_global, plaintext);
+#else
+  aes_decrypt(ciphertext, ciphertext_len, key, iv, plaintext);
+#endif
+
   EVP_cleanup();
   return 0;
 }

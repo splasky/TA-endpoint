@@ -7,6 +7,14 @@
  */
 
 #include "uart_utils.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 static int set_interface_attribs(int fd, int speed) {
   struct termios tty;
@@ -75,12 +83,12 @@ int uart_init() {
   return fd;
 }
 
-void uart_write(const int fd, char cmd) {
+void uart_write(const int fd, char *cmd) {
   /* simple output */
   ssize_t cmd_len = strlen(cmd);
   ssize_t wlen = write(fd, cmd, cmd_len);
   if (wlen != cmd_len) {
-    printf("Error from write: %d, %d\n", wlen, errno);
+    printf("Error from write: %ld, %d\n", wlen, errno);
   }
   tcdrain(fd); /* delay for output */
 }
@@ -95,7 +103,7 @@ char *uart_read(const int fd) {
     response = (char *)malloc(sizeof(char) * rdlen);
     strncpy(response, buf, READ_BUFFER_SIZE);
   } else if (rdlen < 0) {
-    printf("Error from read: %d: %s\n", rdlen, strerror(errno));
+    printf("Error from read: %ld: %s\n", rdlen, strerror(errno));
   }
 
   return response;

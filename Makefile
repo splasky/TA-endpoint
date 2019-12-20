@@ -13,22 +13,35 @@ ROOT_DIR = $(CURDIR)
 THIRD_PARTY_PATH = $(ROOT_DIR)/third_party
 MBEDTLS_PATH = $(THIRD_PARTY_PATH)/mbedtls
 HTTP_PARSER_PATH = $(THIRD_PARTY_PATH)/http-parser
+TEST_PATH = $(ROOT_DIR)/tests
+UTILS_PATH = $(ROOT_DIR)/utils
+CONNECTIVITY_PATH = $(ROOT_DIR)/connectivity
+export THIRD_PARTY_PATH ROOT_DIR UTILS_PATH
 
-ifeq ($(DEBUG), y)
-CFLAGS = -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2 -g3 -DDEBUG
-else
+ifeq ($(DEBUG), n)
 CFLAGS = -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2 -g3
+else
+CFLAGS = -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2 -g3 -DDEBUG
 endif
+export CFLAGS
 
-INCLUDES = -I$(THIRD_PARTY_PATH)/openssl/include -I$(THIRD_PARTY_PATH)/http-parser -I$(THIRD_PARTY_PATH)/mbedtls/include
+INCLUDES := -I$(THIRD_PARTY_PATH)/openssl/include -I$(THIRD_PARTY_PATH)/http-parser -I$(THIRD_PARTY_PATH)/mbedtls/include -I$(ROOT_DIR)/connectivity -I$(ROOT_DIR)/utils
 LIBS = $(MBEDTLS_PATH)/library/libmbedx509.a $(MBEDTLS_PATH)/library/libmbedtls.a $(MBEDTLS_PATH)/library/libmbedcrypto.a
 
-SOURCES = main.c crypto_utils.c serializer.c tryte_byte_conv.c uart_utils.c conn_http.c $(HTTP_PARSER_PATH)/http_parser.c
-OBJS = $(SOURCES:.c=.o)
+UTILS_OBJS = $(UTILS_PATH)/crypto_utils.o $(UTILS_PATH)/serializer.o $(UTILS_PATH)/tryte_byte_conv.o $(UTILS_PATH)/uart_utils.o
+# We need to modify this rule here to be compatible to the situation 
+# that we have several different ways of connectivity in the future
+CONNECTIVITY_OBJS = conn_http.o
+
+OBJS = main.o $(HTTP_PARSER_PATH)/http_parser.o $(UTILS_OBJS) $(CONNECTIVITY_OBJS)
 
 .SUFFIXES:.c .o
 
 all: ta_client
+
+ta_client: mbedtls_make $(OBJS)
+	@echo Linking: $@ ....
+	$(CC) -o $@ $(OBJS) $(LIBS) -lcrypto
 
 mbedtls_make:
 	@for dir in $(MBEDTLS_PATH); do \
@@ -36,29 +49,38 @@ mbedtls_make:
 		if [ $$? != 0 ]; then exit 1; fi; \
 	done
 
-ta_client: mbedtls_make $(OBJS)
-	@echo Linking: $@ ....
-	$(CC) -o $@ $(OBJS) $(LIBS) -L$(ROOT_DIR)/third_party/openssl -lcrypto
+conn_http.o: connectivity/conn_http.c
+	@echo Compiling $@ ...
+	$(CC) -v -c $(CFLAGS) $(INCLUDES) -MMD -MF conn_http.c.d -o $@ $<
+-include conn_http.c.d
 
-%.o: %.c
+main.o: main.c
 	@echo Compiling: $< ....
-	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $^
+	$(MAKE) -C $(UTILS_PATH)
+	$(CC) -c $(CFLAGS) $(INCLUDES) -MMD -MF main.c.d -o $@ $<
 
-test: 
-	$(CC) -g -o test_tryte_byte_conv test_tryte_byte_conv.c tryte_byte_conv.c
-	$(CC) -g -o test_crypto_utils test_crypto_utils.c crypto_utils.c -lcrypto
-	$(CC) -g -o test_serializer test_serializer.c serializer.c
+test: $(TEST_PATH)
+	$(MAKE) -C $(TEST_PATH)
 
-clean: clean_client mbedtls_clean clean_test
+clean: clean_client clean_third_party clean_test
 
 clean_test:
-	rm -f test_crypto_utils test_serializer test_tryte_byte_conv
+	$(MAKE) -C $(TEST_PATH) clean
 
 clean_client:
-	rm -f ta_client *.o
+	$(MAKE) -C $(UTILS_PATH) clean
+	$(MAKE) -C $(CONNECTIVITY_PATH) clean
+	rm -f ta_client *.o *.c.d
 
-mbedtls_clean:
+clean_third_party: clean_mbedtls clean_http_parser
+
+clean_mbedtls:
 	@for dir in $(MBEDTLS_PATH); do \
 		$(MAKE) -C $$dir clean; \
 		if [ $$? != 0 ]; then exit 1; fi; \
 	done
+
+clean_http_parser:
+	$(MAKE) -C $(HTTP_PARSER_PATH) clean
+
+-include main.c.d
