@@ -16,17 +16,18 @@ HTTP_PARSER_PATH = $(THIRD_PARTY_PATH)/http-parser
 TEST_PATH = $(ROOT_DIR)/tests
 UTILS_PATH = $(ROOT_DIR)/utils
 CONNECTIVITY_PATH = $(ROOT_DIR)/connectivity
-export THIRD_PARTY_PATH ROOT_DIR UTILS_PATH
+export THIRD_PARTY_PATH ROOT_DIR UTILS_PATH MBEDTLS_PATH
 
 ifeq ($(DEBUG), n)
-CFLAGS = -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2 -g3
+CFLAGS = -Wall -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2
 else
-CFLAGS = -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2 -g3 -DDEBUG
+CFLAGS = -Wall -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -g3 -DDEBUG
 endif
 export CFLAGS
 
-INCLUDES := -I$(THIRD_PARTY_PATH)/openssl/include -I$(THIRD_PARTY_PATH)/http-parser -I$(THIRD_PARTY_PATH)/mbedtls/include -I$(ROOT_DIR)/connectivity -I$(ROOT_DIR)/utils
+INCLUDES = -I$(THIRD_PARTY_PATH)/http-parser -I$(MBEDTLS_PATH)/include -I$(ROOT_DIR)/connectivity -I$(ROOT_DIR)/utils
 LIBS = $(MBEDTLS_PATH)/library/libmbedx509.a $(MBEDTLS_PATH)/library/libmbedtls.a $(MBEDTLS_PATH)/library/libmbedcrypto.a
+export INCLUDES
 
 UTILS_OBJS = $(UTILS_PATH)/crypto_utils.o $(UTILS_PATH)/serializer.o $(UTILS_PATH)/tryte_byte_conv.o $(UTILS_PATH)/uart_utils.o
 # We need to modify this rule here to be compatible to the situation 
@@ -36,13 +37,13 @@ CONNECTIVITY_OBJS = conn_http.o
 OBJS = main.o $(HTTP_PARSER_PATH)/http_parser.o $(UTILS_OBJS) $(CONNECTIVITY_OBJS)
 
 .SUFFIXES:.c .o
-.PHONY: pre-build
+.PHONY: all clean test pre-build
 
-all: pre-build ta_client
+all: pre-build ta_client mbedtls_make
 
 ta_client: mbedtls_make $(OBJS)
 	@echo Linking: $@ ....
-	$(CC) -o $@ $(OBJS) $(LIBS) -lcrypto
+	$(CC) -o $@ $(OBJS) $(LIBS)
 
 mbedtls_make:
 	@for dir in $(MBEDTLS_PATH); do \
@@ -54,13 +55,12 @@ conn_http.o: connectivity/conn_http.c
 	@echo Compiling $@ ...
 	$(CC) -v -c $(CFLAGS) $(INCLUDES) -o $@ $<
 
-main.o: main.c
+main.o: main.c $(UTILS_OBJS)
 	@echo Compiling: $< ....
 	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $<
 $(UTILS_OBJS):
 	$(MAKE) -C $(UTILS_PATH)
-
-test: $(TEST_PATH)
+test: $(TEST_PATH) $(UTILS_OBJS)
 	$(MAKE) -C $(TEST_PATH)
 
 clean: clean_client clean_third_party clean_test

@@ -28,7 +28,10 @@
 #define ADDR_LOG_PATH "addr_log.log"
 #endif
 
+static char addr_log_template[] = "\n%s\n";
+
 void gen_trytes(uint16_t len, char *out) {
+  // TODO: warning this may be risk
   const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   uint8_t rand_index;
   for (int i = 0; i < len; i++) {
@@ -68,15 +71,23 @@ void send_https_msg(char const *const host, char const *const port,
   free(parser);
 }
 
+void log_address(char* next_addr) {
+  FILE* fp;
+  char addr_log[ADDR_LEN + 3];
+  // Append the next address to the address log file
+  fp = fopen(ADDR_LOG_PATH, "a");
+  snprintf(addr_log, 83, addr_log_template, next_addr);
+  fputs(addr_log, fp);
+  fclose(fp);
+}
+
 int main(int argc, char *argv[]) {
-  int ret, size;
 
   uint8_t ciphertext[1024] = {0}, iv[16] = {0};
   uint32_t raw_msg_len = 1 + ADDR_LEN + 20, ciphertext_len = 0, msg_len;
   char tryte_msg[1024] = {0}, msg[1024] = {0}, url[] = HOST API,
        raw_msg[1000] = {0}, addr[ADDR_LEN + 1] = ADDRESS,
-       next_addr[ADDR_LEN + 1] = {0}, addr_log_template[] = "\n%s\n",
-       addr_log[ADDR_LEN + 3];
+       next_addr[ADDR_LEN + 1] = {0};
   srand(time(NULL));
 
 #ifndef DEBUG
@@ -86,10 +97,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 #else
-  FILE *fp = fopen(ADDR_LOG_PATH, "a");
-  snprintf(addr_log, 83, addr_log_template, next_addr);
-  fputs(addr_log, fp);
-  fclose(fp);
+  log_address(next_addr);
 #endif
 
   char *response = NULL;
@@ -114,7 +122,7 @@ int main(int argc, char *argv[]) {
       tm_info = localtime(&timer);
       strftime(time_str, 26, "%Y-%m-%d %H:%M:%S", tm_info);
       printf("%s\n", time_str);
-
+      //TODO: not good
       gen_trytes(ADDR_LEN, next_addr);
 
 #ifndef DEBUG
@@ -122,18 +130,51 @@ int main(int argc, char *argv[]) {
 #else
   response = strdup("This is a test");
   printf("next_addr = %s \n", next_addr);
-
-  // Append the next address to the address log file
-  fp = fopen(ADDR_LOG_PATH, "a");
-  snprintf(addr_log, 83, addr_log_template, next_addr);
-  fputs(addr_log, fp);
-  fclose(fp);
+  log_address(next_addr);
 #endif
       // real transmitted data
+#ifndef DEBUG
       snprintf(raw_msg, raw_msg_len, MSG, next_addr, response);
+#else
+      snprintf(raw_msg, raw_msg_len, MSG, next_addr);
+#endif
       printf("Raw Message: %s\n", raw_msg);
-      encrypt(raw_msg, strlen(raw_msg), ciphertext, &ciphertext_len, iv);
+      uint8_t private_key[AES_BLOCK_SIZE * 2] = { 0 };
+      char id[IMSI_LEN + 1] = { 0 };
+#ifndef DEBUG
+      if(get_aes_key(private_key) != 0){
+        fprintf(stderr, "%s\n", "get aes key error");
+        return -1;
+      }
+      // fetch Device_ID (IMSI, len <= 15)
+      if (get_device_id(id) != 0) {
+        fprintf(stderr, "%s\n", "get device id error");
+        return -1;
+      }
+#else
+    /* Setting data to produce predictable results during debugging */
+    // init vector for aes
+    const uint8_t iv_global[16] = {164, 3,  98, 193, 52,  162, 107, 252,
+                                   184, 42, 74, 225, 157, 26,  88,  72};
+    // device id
+    const char* device_id = "470010171566423";
+    // private key
+    const uint8_t key[32] = {82,  142, 184, 64,  74,  105, 126, 65,
+                             154, 116, 14,  193, 208, 41,  8,   115,
+                             158, 252, 228, 160, 79,  5,   167, 185,
+                             13,  159, 135, 113, 49,  209, 58,  68};
 
+    memcpy(id, device_id, 16);
+    memcpy(private_key, key, 16);
+    memcpy(iv, iv_global, 16);
+#endif
+      ciphertext_len = encrypt(raw_msg, strlen(raw_msg),
+                           ciphertext, 1024,
+                           iv, private_key, id);
+      if(ciphertext_len == 0){
+          fprintf(stderr, "%s\n","encrypt msg error");
+          return -1;
+      }
       serialize_msg(iv, ciphertext_len, ciphertext, msg, &msg_len);
       bytes_to_trytes(msg, msg_len, tryte_msg);
 
