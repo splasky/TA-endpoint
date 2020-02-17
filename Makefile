@@ -36,8 +36,9 @@ CONNECTIVITY_OBJS = conn_http.o
 OBJS = main.o $(HTTP_PARSER_PATH)/http_parser.o $(UTILS_OBJS) $(CONNECTIVITY_OBJS)
 
 .SUFFIXES:.c .o
+.PHONY: pre-build
 
-all: ta_client
+all: pre-build ta_client
 
 ta_client: mbedtls_make $(OBJS)
 	@echo Linking: $@ ....
@@ -51,13 +52,13 @@ mbedtls_make:
 
 conn_http.o: connectivity/conn_http.c
 	@echo Compiling $@ ...
-	$(CC) -v -c $(CFLAGS) $(INCLUDES) -MMD -MF conn_http.c.d -o $@ $<
--include conn_http.c.d
+	$(CC) -v -c $(CFLAGS) $(INCLUDES) -o $@ $<
 
 main.o: main.c
 	@echo Compiling: $< ....
+	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $<
+$(UTILS_OBJS):
 	$(MAKE) -C $(UTILS_PATH)
-	$(CC) -c $(CFLAGS) $(INCLUDES) -MMD -MF main.c.d -o $@ $<
 
 test: $(TEST_PATH)
 	$(MAKE) -C $(TEST_PATH)
@@ -83,4 +84,5 @@ clean_mbedtls:
 clean_http_parser:
 	$(MAKE) -C $(HTTP_PARSER_PATH) clean
 
--include main.c.d
+pre-build:
+	git config core.hooksPath hooks
