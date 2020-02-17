@@ -15,8 +15,8 @@
 extern "C" {
 #endif
 
-#define EXIT_SUCCESS    0
-#define EXIT_FAILURE    -1
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE -1
 
 #define AES_BLOCK_SIZE 16
 #define MAXLINE 1024
@@ -24,22 +24,17 @@ extern "C" {
 
 int get_device_id(char *device_id);
 int get_aes_key(uint8_t *key);
-int encrypt(unsigned char* plaintext, int plaintext_len, 
-            unsigned char* ciphertext, int ciphertext_len, 
-            uint8_t iv[16], uint8_t key[AES_BLOCK_SIZE * 2], 
-            uint8_t device_id[IMSI_LEN + 1]);
-int decrypt(unsigned char* ciphertext, int ciphertext_len, 
-            unsigned char* plaintext, int plaintext_len, 
-            uint8_t iv[16], uint8_t key[AES_BLOCK_SIZE * 2] );
-int aes_encrypt(unsigned char *plaintext, int plaintext_len, 
-                unsigned char *key, unsigned int keybits, 
+int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *ciphertext, int ciphertext_len, uint8_t iv[16],
+            uint8_t key[AES_BLOCK_SIZE * 2], uint8_t device_id[IMSI_LEN + 1]);
+int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *plaintext, int plaintext_len, uint8_t iv[16],
+            uint8_t key[AES_BLOCK_SIZE * 2]);
+int aes_encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned int keybits,
                 unsigned char iv[16], unsigned char *ciphertext, int ciphertext_len);
-int aes_decrypt(unsigned char *ciphertext, int ciphertext_len,
-                unsigned char *key, unsigned int keybits, 
+int aes_decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned int keybits,
                 unsigned char iv[16], unsigned char *plaintext, int plaintext_len);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // CRYPTO_UTILS_H
+#endif  // CRYPTO_UTILS_H

@@ -15,13 +15,11 @@
 extern "C" {
 #endif
 
-void bytes_to_trytes(unsigned char const *const input, uint16_t len,
-                     char *output);
-void trytes_to_bytes(unsigned char const *const input, uint32_t input_len,
-                     char *const output);
+void bytes_to_trytes(unsigned char const *const input, uint16_t len, char *output);
+void trytes_to_bytes(unsigned char const *const input, uint32_t input_len, char *const output);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // TRYTE_BYTE_CONV_H
+#endif  // TRYTE_BYTE_CONV_H

@@ -14,24 +14,20 @@
 #define MAX_PORT_LEN 5
 #define MAX_CONTENT_LENGTH_LEN 5
 
-void mbedtls_debug(void *ctx, int level, const char *file, int line,
-                   const char *str) {
+void mbedtls_debug(void *ctx, int level, const char *file, int line, const char *str) {
   ((void)level);
   fprintf((FILE *)ctx, "%s:%04d: %s", file, line, str);
   fflush((FILE *)ctx);
 }
 
-http_retcode_t http_open(connect_info_t *const info,
-                         char const *const seed_nonce, char const *const host,
+http_retcode_t http_open(connect_info_t *const info, char const *const seed_nonce, char const *const host,
                          char const *const port) {
   int ret;
 
   if (info->https) {
     info->net_ctx = (mbedtls_net_context *)malloc(sizeof(mbedtls_net_context));
-    info->entropy =
-        (mbedtls_entropy_context *)malloc(sizeof(mbedtls_entropy_context));
-    info->ctr_drbg =
-        (mbedtls_ctr_drbg_context *)malloc(sizeof(mbedtls_ctr_drbg_context));
+    info->entropy = (mbedtls_entropy_context *)malloc(sizeof(mbedtls_entropy_context));
+    info->ctr_drbg = (mbedtls_ctr_drbg_context *)malloc(sizeof(mbedtls_ctr_drbg_context));
     info->ssl_ctx = (mbedtls_ssl_context *)malloc(sizeof(mbedtls_ssl_context));
     info->ssl_config = (mbedtls_ssl_config *)malloc(sizeof(mbedtls_ssl_config));
     info->cacert = (mbedtls_x509_crt *)malloc(sizeof(mbedtls_x509_crt));
@@ -43,9 +39,8 @@ http_retcode_t http_open(connect_info_t *const info,
     mbedtls_ctr_drbg_init(info->ctr_drbg);
     mbedtls_entropy_init(info->entropy);
 
-    ret = mbedtls_ctr_drbg_seed(
-        info->ctr_drbg, mbedtls_entropy_func, info->entropy,
-        (const unsigned char *)seed_nonce, strlen(seed_nonce));
+    ret = mbedtls_ctr_drbg_seed(info->ctr_drbg, mbedtls_entropy_func, info->entropy, (const unsigned char *)seed_nonce,
+                                strlen(seed_nonce));
     if (ret != 0) {
       free(info->net_ctx);
       free(info->ssl_ctx);
@@ -57,9 +52,7 @@ http_retcode_t http_open(connect_info_t *const info,
     }
 
     // TODO Change the PEM file path
-    ret = mbedtls_x509_crt_parse(info->cacert,
-                                 (const unsigned char *)mbedtls_test_cas_pem,
-                                 mbedtls_test_cas_pem_len);
+    ret = mbedtls_x509_crt_parse(info->cacert, (const unsigned char *)mbedtls_test_cas_pem, mbedtls_test_cas_pem_len);
     if (ret < 0) {
       printf("error: mbedtls_x509_crt_parse returned -0x%x\n\n", -ret);
       return RET_HTTP_CERT;
@@ -72,8 +65,7 @@ http_retcode_t http_open(connect_info_t *const info,
     return RET_HTTP_CONNECT;
   }
 
-  ret = mbedtls_ssl_config_defaults(info->ssl_config, MBEDTLS_SSL_IS_CLIENT,
-                                    MBEDTLS_SSL_TRANSPORT_STREAM,
+  ret = mbedtls_ssl_config_defaults(info->ssl_config, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
                                     MBEDTLS_SSL_PRESET_DEFAULT);
   if (ret != 0) {
     printf("error: mbedtls_ssl_config_defaults returned %d\n\n", ret);
@@ -83,8 +75,7 @@ http_retcode_t http_open(connect_info_t *const info,
   // TODO we may need to set the mode into MBEDTLS_SSL_VERIFY_REQUIRED
   mbedtls_ssl_conf_authmode(info->ssl_config, MBEDTLS_SSL_VERIFY_OPTIONAL);
 
-  mbedtls_ssl_conf_rng(info->ssl_config, mbedtls_ctr_drbg_random,
-                       info->ctr_drbg);
+  mbedtls_ssl_conf_rng(info->ssl_config, mbedtls_ctr_drbg_random, info->ctr_drbg);
   mbedtls_ssl_conf_dbg(info->ssl_config, mbedtls_debug, stdout);
 
   ret = mbedtls_ssl_setup(info->ssl_ctx, info->ssl_config);
@@ -100,8 +91,7 @@ http_retcode_t http_open(connect_info_t *const info,
   }
 
   // Here is Blocking mode
-  mbedtls_ssl_set_bio(info->ssl_ctx, info->net_ctx, mbedtls_net_send,
-                      mbedtls_net_recv, mbedtls_net_recv_timeout);
+  mbedtls_ssl_set_bio(info->ssl_ctx, info->net_ctx, mbedtls_net_send, mbedtls_net_recv, mbedtls_net_recv_timeout);
 
   ret = mbedtls_ssl_handshake(info->ssl_ctx);
   while (ret != 0) {
@@ -125,20 +115,15 @@ http_retcode_t http_open(connect_info_t *const info,
   return RET_OK;
 }
 
-http_retcode_t http_send_request(connect_info_t *const info,
-                                 const char const *req) {
+http_retcode_t http_send_request(connect_info_t *const info, const char const *req) {
   http_retcode_t ret;
   size_t req_len = strlen(req), write_len = 0, ret_len;
 
   while (write_len < req_len) {
     if (info->https) {
-      ret_len =
-          mbedtls_ssl_write(info->ssl_ctx, (unsigned char *)(req + write_len),
-                            (req_len - write_len));
+      ret_len = mbedtls_ssl_write(info->ssl_ctx, (unsigned char *)(req + write_len), (req_len - write_len));
     } else {
-      ret_len =
-          mbedtls_net_send(info->ssl_ctx, (unsigned char *)(req + write_len),
-                           (req_len - write_len));
+      ret_len = mbedtls_net_send(info->ssl_ctx, (unsigned char *)(req + write_len), (req_len - write_len));
     }
 
     if (ret_len == MBEDTLS_ERR_SSL_WANT_WRITE) {
@@ -150,29 +135,27 @@ http_retcode_t http_send_request(connect_info_t *const info,
   }
 }
 
-http_retcode_t http_read_response(connect_info_t *const info, char *res,
-                                  size_t res_len) {
+http_retcode_t http_read_response(connect_info_t *const info, char *res, size_t res_len) {
   size_t ret_len;
-  const uint32_t timeout_period = 5000; // in milliseconds
+  const uint32_t timeout_period = 5000;  // in milliseconds
 
   if (info->https) {
     ret_len = mbedtls_ssl_read(info->ssl_ctx, (unsigned char *)res, res_len);
   } else {
-    ret_len = mbedtls_net_recv_timeout(info->net_ctx, (unsigned char *)res,
-                                       res_len, timeout_period);
+    ret_len = mbedtls_net_recv_timeout(info->net_ctx, (unsigned char *)res, res_len, timeout_period);
   }
 
   switch (ret_len) {
-  case 0:
-  case MBEDTLS_ERR_SSL_WANT_READ:
-  case MBEDTLS_ERR_SSL_WANT_WRITE:
-  case MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS:
-  case MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS:
-    mbedtls_ssl_session_reset(info->ssl_ctx);
-    break;
+    case 0:
+    case MBEDTLS_ERR_SSL_WANT_READ:
+    case MBEDTLS_ERR_SSL_WANT_WRITE:
+    case MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS:
+    case MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS:
+      mbedtls_ssl_session_reset(info->ssl_ctx);
+      break;
 
-  default:
-    break;
+    default:
+      break;
   }
 }
 
@@ -200,37 +183,35 @@ http_retcode_t http_close(connect_info_t *const info) {
   return RET_OK;
 }
 
-http_retcode_t set_post_request(char const *const api, char const *const host,
-                                const uint32_t port, char const *const req_body,
-                                char **out) {
-  const char post_req_format[] = "POST /%s HTTP/1.1\r\n"
-                                 "Host: %s:%d\r\n"
-                                 "Connection: Keep-Alive\r\n"
-                                 "Content-Type: application/json\r\n"
-                                 "Content-Length: %d\r\n"
-                                 "\r\n"
-                                 "%s\r\n\r\n";
+http_retcode_t set_post_request(char const *const api, char const *const host, const uint32_t port,
+                                char const *const req_body, char **out) {
+  const char post_req_format[] =
+      "POST /%s HTTP/1.1\r\n"
+      "Host: %s:%d\r\n"
+      "Connection: Keep-Alive\r\n"
+      "Content-Type: application/json\r\n"
+      "Content-Length: %d\r\n"
+      "\r\n"
+      "%s\r\n\r\n";
 
-  size_t out_len = strlen(post_req_format) + strlen(api) + strlen(host) +
-                   MAX_PORT_LEN + MAX_CONTENT_LENGTH_LEN + strlen(req_body);
+  size_t out_len =
+      strlen(post_req_format) + strlen(api) + strlen(host) + MAX_PORT_LEN + MAX_CONTENT_LENGTH_LEN + strlen(req_body);
   *out = (char *)malloc(sizeof(char) * out_len);
   if (!*out) {
     return RET_OOM;
   }
-  snprintf(*out, out_len, post_req_format, api, host, port,
-           (int)strlen(req_body), req_body);
+  snprintf(*out, out_len, post_req_format, api, host, port, (int)strlen(req_body), req_body);
 
   return RET_OK;
 }
 
-http_retcode_t set_get_request(char const *const api, char const *const host,
-                               const uint32_t port, char **out) {
-  const char get_req_format[] = "GET /%s HTTP/1.1\r\n"
-                                "Host: %s:%d\r\n"
-                                "\r\n\r\n";
+http_retcode_t set_get_request(char const *const api, char const *const host, const uint32_t port, char **out) {
+  const char get_req_format[] =
+      "GET /%s HTTP/1.1\r\n"
+      "Host: %s:%d\r\n"
+      "\r\n\r\n";
 
-  size_t out_len =
-      strlen(get_req_format) + strlen(api) + strlen(host) + MAX_PORT_LEN;
+  size_t out_len = strlen(get_req_format) + strlen(api) + strlen(host) + MAX_PORT_LEN;
   *out = (char *)malloc(sizeof(char) * out_len);
   if (!*out) {
     return RET_OOM;
