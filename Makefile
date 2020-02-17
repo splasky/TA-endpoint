@@ -36,8 +36,9 @@ CONNECTIVITY_OBJS = conn_http.o
 OBJS = main.o $(HTTP_PARSER_PATH)/http_parser.o $(UTILS_OBJS) $(CONNECTIVITY_OBJS)
 
 .SUFFIXES:.c .o
+.PHONY: pre-build
 
-all: ta_client
+all: pre-build ta_client
 
 ta_client: mbedtls_make $(OBJS)
 	@echo Linking: $@ ....
@@ -83,4 +84,6 @@ clean_mbedtls:
 clean_http_parser:
 	$(MAKE) -C $(HTTP_PARSER_PATH) clean
 
+pre-build:
+	git config core.hooksPath hooks
 -include main.c.d
