@@ -82,7 +82,7 @@ int main(void) {
 
   memset(ciphertext, 0, 1024);
   memset(plain, 0, 1024);
-  ciphertext_len = encrypt(test_payload2, test_paylen2, ciphertext, 1024, iv, private_key, id);
+  ciphertext_len = encrypt((char*)test_payload2, test_paylen2, ciphertext, 1024, iv, private_key, id);
   decrypt(ciphertext, ciphertext_len, plain, 1024, iv, private_key);
 
   /* compare payload */

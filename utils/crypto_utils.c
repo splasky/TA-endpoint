@@ -10,7 +10,7 @@
 
 // The device ID we are used here is IMSI. We could use other physical ID in the
 // future.
-int get_device_id(char *device_id) {
+int get_device_id(const char *device_id) {
   // TODO: replace cm command
   char result_buf[MAXLINE], *imsi;
   char cmd[] = "cm sim info";
@@ -29,7 +29,7 @@ int get_device_id(char *device_id) {
     }
   }
 
-  strncpy(device_id, imsi, IMSI_LEN);
+  strncpy((char *)device_id, imsi, IMSI_LEN);
 
   if (pclose(fp) == -1) {
     perror("close FILE pointer");
@@ -39,7 +39,7 @@ int get_device_id(char *device_id) {
 }
 
 // Get AES key with hashchain in legato originated app form.
-int get_aes_key(uint8_t *key) {
+int get_aes_key(const uint8_t *key) {
   // TODO: replace cm command
   char hash_chain_res[MAXLINE];
   char cmd[] = "cm sim info";
@@ -56,7 +56,7 @@ int get_aes_key(uint8_t *key) {
     hash_chain_res[strlen(hash_chain_res) - 2] = '\0';
   }
 
-  strncpy(key, hash_chain_res, AES_BLOCK_SIZE);
+  strncpy((char *)key, hash_chain_res, AES_BLOCK_SIZE);
 
   if (pclose(fp) == -1) {
     perror("close FILE pointer");
@@ -66,7 +66,7 @@ int get_aes_key(uint8_t *key) {
   return 0;
 }
 
-int aes_encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned int keybits,
+int aes_encrypt(const unsigned char *plaintext, int plaintext_len, const unsigned char *key, unsigned int keybits,
                 unsigned char iv[AES_BLOCK_SIZE], unsigned char *ciphertext, int ciphertext_len) {
   mbedtls_aes_context ctx;
   int status;
@@ -114,12 +114,12 @@ exit:
   return -1;
 }
 
-int aes_decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned int keybits,
+int aes_decrypt(const unsigned char *ciphertext, int ciphertext_len, const unsigned char *key, unsigned int keybits,
                 unsigned char iv[AES_BLOCK_SIZE], unsigned char *plaintext, int plaintext_len) {
   mbedtls_aes_context ctx;
   int status, n = 0;
   char *err;
-  char buf[AES_BLOCK_SIZE];
+  uint8_t buf[AES_BLOCK_SIZE];
   /* Create and initialise the context */
   mbedtls_aes_init(&ctx);
   memset(plaintext, 0, plaintext_len);

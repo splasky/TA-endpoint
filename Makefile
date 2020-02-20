@@ -19,7 +19,7 @@ CONNECTIVITY_PATH = $(ROOT_DIR)/connectivity
 export THIRD_PARTY_PATH ROOT_DIR UTILS_PATH MBEDTLS_PATH
 
 ifeq ($(DEBUG), n)
-CFLAGS = -Wall -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2
+CFLAGS = -Wall -Werror -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2
 else
 CFLAGS = -Wall -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -g3 -DDEBUG
 endif

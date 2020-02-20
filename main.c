@@ -62,7 +62,7 @@ void send_https_msg(char const *const host, char const *const port, char const *
     http_read_response(&info, res, sizeof(res) / sizeof(char));
     http_close(&info);
     http_parser_init(parser, HTTP_RESPONSE);
-    size_t nparsed = http_parser_execute(parser, &settings, res, strlen(res));
+    http_parser_execute(parser, &settings, res, strlen(res));
     printf("HTTP Response: %s\n", http_res_body);
     free(http_res_body);
     http_res_body = NULL;
@@ -86,10 +86,9 @@ int log_address(char *next_addr) {
 }
 
 int main(int argc, char *argv[]) {
-  uint8_t ciphertext[1024] = {0}, iv[16] = {0};
+  uint8_t ciphertext[1024] = {0}, iv[16] = {0}, raw_msg[1000] = {0};
   uint32_t raw_msg_len = 1 + ADDR_LEN + 20, ciphertext_len = 0, msg_len;
-  char tryte_msg[1024] = {0}, msg[1024] = {0}, url[] = HOST API, raw_msg[1000] = {0}, addr[ADDR_LEN + 1] = ADDRESS,
-       next_addr[ADDR_LEN + 1] = {0};
+  char tryte_msg[1024] = {0}, msg[1024] = {0}, addr[ADDR_LEN + 1] = ADDRESS, next_addr[ADDR_LEN + 1] = {0};
   srand(time(NULL));
 
 #ifndef DEBUG
@@ -139,13 +138,13 @@ int main(int argc, char *argv[]) {
 #endif
       // real transmitted data
 #ifndef DEBUG
-      snprintf(raw_msg, raw_msg_len, MSG, next_addr, response);
+      snprintf((char *)raw_msg, raw_msg_len, MSG, next_addr, response);
 #else
-  snprintf(raw_msg, raw_msg_len, MSG, next_addr);
+  snprintf((char *)raw_msg, raw_msg_len, MSG, next_addr);
 #endif
       printf("Raw Message: %s\n", raw_msg);
       uint8_t private_key[AES_BLOCK_SIZE * 2] = {0};
-      char id[IMSI_LEN + 1] = {0};
+      uint8_t id[IMSI_LEN + 1] = {0};
 #ifndef DEBUG
       if (get_aes_key(private_key) != 0) {
         fprintf(stderr, "%s\n", "get aes key error");
@@ -170,13 +169,13 @@ int main(int argc, char *argv[]) {
   memcpy(private_key, key, 16);
   memcpy(iv, iv_global, 16);
 #endif
-      ciphertext_len = encrypt(raw_msg, strlen(raw_msg), ciphertext, 1024, iv, private_key, id);
+      ciphertext_len = encrypt(raw_msg, strlen((char *)raw_msg), ciphertext, 1024, iv, private_key, id);
       if (ciphertext_len == 0) {
         fprintf(stderr, "%s\n", "encrypt msg error");
         return -1;
       }
       serialize_msg(iv, ciphertext_len, ciphertext, msg, &msg_len);
-      bytes_to_trytes(msg, msg_len, tryte_msg);
+      bytes_to_trytes((const unsigned char *)msg, msg_len, tryte_msg);
 
       // Init http session. verify: check the server CA cert.
       send_https_msg(HOST, PORT, API, tryte_msg, addr);
