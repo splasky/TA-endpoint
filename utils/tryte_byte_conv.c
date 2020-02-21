@@ -10,8 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-void bytes_to_trytes(unsigned char const *const input, uint16_t input_len,
-                     char *output) {
+void bytes_to_trytes(unsigned char const *const input, uint16_t input_len, char *output) {
   const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   uint8_t dec = 0, lower = 0, upper = 0;
 
@@ -24,8 +23,7 @@ void bytes_to_trytes(unsigned char const *const input, uint16_t input_len,
   }
 }
 
-void trytes_to_bytes(unsigned char const *const input, uint32_t input_len,
-                     char *const output) {
+void trytes_to_bytes(unsigned char const *const input, uint32_t input_len, char *const output) {
   uint8_t upper = 0, lower = 0;
 
   for (uint16_t i = 0; i < input_len; i += 2) {

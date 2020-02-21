@@ -35,8 +35,7 @@ static int set_interface_attribs(int fd, int speed) {
   tty.c_cflag &= ~CRTSCTS; /* no hardware flowcontrol */
 
   /* setup for non-canonical mode */
-  tty.c_iflag &=
-      ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+  tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
   tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
   tty.c_oflag &= ~OPOST;
 
@@ -62,8 +61,7 @@ static void set_mincount(int fd, int mcount) {
   tty.c_cc[VMIN] = mcount ? 1 : 0;
   tty.c_cc[VTIME] = 5; /* half second timer */
 
-  if (tcsetattr(fd, TCSANOW, &tty) < 0)
-    printf("Error tcsetattr: %s\n", strerror(errno));
+  if (tcsetattr(fd, TCSANOW, &tty) < 0) printf("Error tcsetattr: %s\n", strerror(errno));
 }
 
 int uart_init() {

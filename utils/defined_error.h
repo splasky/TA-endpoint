@@ -29,4 +29,4 @@ typedef enum {
 }
 #endif
 
-#endif // ERROR_H
+#endif  // ERROR_H

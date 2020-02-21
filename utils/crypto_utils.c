@@ -1,35 +1,17 @@
 #include "crypto_utils.h"
-#include <openssl/bio.h>
-#include <openssl/conf.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "mbedtls/aes.h"
+#include "mbedtls/md.h"
 
-#define OPENSSL_SUCCESS 1
-#define FAILED 1
-#define AES_BLOCK_SIZE 16
-#define CIPHER_LEN_PKCS5(plain_text)                                           \
-  (strlen(plain_text) / AES_BLOCK_SIZE + 1) * AES_BLOCK_SIZE
-
-#define MAXLINE 1024
-#define IMSI_LEN 15
 #define MAX_TIMESTAMP_LEN 20
-#define SHA_TYPE "sha256"
-
-static void handleErrors(void) {
-  ERR_print_errors_fp(stderr);
-  abort();
-}
 
 // The device ID we are used here is IMSI. We could use other physical ID in the
 // future.
 int get_device_id(char *device_id) {
-#if 1
-  strncpy(device_id, "470010171566423", 15);
-  return 0;
-#endif
+  // TODO: replace cm command
   char result_buf[MAXLINE], *imsi;
   char cmd[] = "cm sim info";
   FILE *fp;
@@ -37,7 +19,7 @@ int get_device_id(char *device_id) {
   fp = popen(cmd, "r");
   if (NULL == fp) {
     perror("popen open error");
-    return FAILED;
+    return -1;
   }
 
   while (fgets(result_buf, sizeof(result_buf), fp) != NULL) {
@@ -51,37 +33,23 @@ int get_device_id(char *device_id) {
 
   if (pclose(fp) == -1) {
     perror("close FILE pointer");
-    return FAILED;
+    return -1;
   }
-
   return 0;
 }
 
-#ifdef KEY_DEBUG
-uint8_t key_global[32] = {82,  142, 184, 64,  74,  105, 126, 65,  154, 116, 14,
-                          193, 208, 41,  8,   115, 158, 252, 228, 160, 79,  5,
-                          167, 185, 13,  159, 135, 113, 49,  209, 58,  68};
-#endif
-#ifdef IV_DEBUG
-static uint8_t iv_global[16] = {164, 3,  98, 193, 52,  162, 107, 252,
-                                184, 42, 74, 225, 157, 26,  88,  72};
-#endif
-
 // Get AES key with hashchain in legato originated app form.
 int get_aes_key(uint8_t *key) {
-#ifdef KEY_DEBUG
-  memcpy(key, &key_global, 32);
-  return 0;
-#endif
+  // TODO: replace cm command
   char hash_chain_res[MAXLINE];
-  char cmd[] = "cm sim info"; // TODO Use the right command
+  char cmd[] = "cm sim info";
   FILE *fp;
 
   fp = popen(cmd, "r");
 
   if (NULL == fp) {
     perror("popen open error");
-    return FAILED;
+    return -1;
   }
 
   if (fgets(hash_chain_res, sizeof(hash_chain_res), fp) != NULL) {
@@ -92,182 +60,154 @@ int get_aes_key(uint8_t *key) {
 
   if (pclose(fp) == -1) {
     perror("close FILE pointer");
-    return FAILED;
+    return -1;
   }
 
   return 0;
 }
 
-int aes_encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
-                unsigned char *iv, unsigned char *ciphertext) {
-  EVP_CIPHER_CTX *ctx;
-
-  int len;
-
-  int ciphertext_len;
-
-  /* Create and initialise the context */
-  if (!(ctx = EVP_CIPHER_CTX_new())) {
-    handleErrors();
-  }
-
+int aes_encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned int keybits,
+                unsigned char iv[AES_BLOCK_SIZE], unsigned char *ciphertext, int ciphertext_len) {
+  mbedtls_aes_context ctx;
+  int status;
+  unsigned char buf[AES_BLOCK_SIZE];
+  int n = 0;
+  char *err;
   /*
    * Initialise the encryption operation.
    */
-  if (OPENSSL_SUCCESS !=
-      EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
-    handleErrors();
+  // Check ciphertext has enough space
+  int new_len = plaintext_len + (AES_BLOCK_SIZE - plaintext_len % 16);
+  if (new_len > ciphertext_len) {
+    err = "ciphertext has not enough space";
+    goto exit;
+  }
+  mbedtls_aes_init(&ctx);
+  memset(ciphertext, 0, ciphertext_len);
+  /* set encryption key */
+  if ((status = mbedtls_aes_setkey_enc(&ctx, key, keybits)) != 0) {
+    err = "set aes key failed";
+    goto exit;
   }
 
   /*
-   * Provide the message to be encrypted, and obtain the encrypted output.
-   * EVP_EncryptUpdate can be called multiple times if necessary
+   * Encrypt plaintext
    */
-  if (OPENSSL_SUCCESS !=
-      EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len)) {
-    handleErrors();
+  for (int i = 0; i < new_len; i += AES_BLOCK_SIZE) {
+    memset(buf, 0, AES_BLOCK_SIZE);
+    n = (new_len - i > AES_BLOCK_SIZE) ? 16 : (int)(new_len - i);
+    memcpy(buf, plaintext + i, n);
+    if ((status = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_ENCRYPT, AES_BLOCK_SIZE, iv, buf, buf)) != 0) {
+      err = "aes decrpyt failed";
+      goto exit;
+    }
+    memcpy(ciphertext, buf, AES_BLOCK_SIZE);
+    ciphertext += AES_BLOCK_SIZE;
   }
-  ciphertext_len = len;
-
-  /*
-   * Finalise the encryption.
-   */
-  if (OPENSSL_SUCCESS != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len)) {
-    handleErrors();
-  }
-  ciphertext_len += len;
 
   /* Clean up */
-  EVP_CIPHER_CTX_free(ctx);
-
-  return ciphertext_len;
+  mbedtls_aes_free(&ctx);
+  return new_len;
+exit:
+  fprintf(stderr, "%s\n", err);
+  mbedtls_aes_free(&ctx);
+  return -1;
 }
 
-int aes_decrypt(unsigned char *ciphertext, int ciphertext_len,
-                unsigned char *key, unsigned char *iv,
-                unsigned char *plaintext) {
-  EVP_CIPHER_CTX *ctx;
-
-  int len;
-  int plaintext_len;
-
+int aes_decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned int keybits,
+                unsigned char iv[AES_BLOCK_SIZE], unsigned char *plaintext, int plaintext_len) {
+  mbedtls_aes_context ctx;
+  int status, n = 0;
+  char *err;
+  char buf[AES_BLOCK_SIZE];
   /* Create and initialise the context */
-  if (!(ctx = EVP_CIPHER_CTX_new())) {
-    handleErrors();
-  }
+  mbedtls_aes_init(&ctx);
+  memset(plaintext, 0, plaintext_len);
 
-  /*
-   * Initialise the decryption operation.
-   * TODO - ensure using a key and IV size appropriate for cipher
-   * For AES key is 256 bit and IV is 128 bit
-   * For CBC mode, IV is not repeatable.
-   */
-  if (OPENSSL_SUCCESS !=
-      EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
-    handleErrors();
+  /* set decryption key */
+  if ((status = mbedtls_aes_setkey_dec(&ctx, key, keybits)) != EXIT_SUCCESS) {
+    err = "set aes key failed";
+    goto exit;
   }
 
   /*
    * Provide the message to be decrypted, and obtain the plaintext output.
-   * EVP_DecryptUpdate can be called multiple times if necessary.
    */
-  if (OPENSSL_SUCCESS !=
-      EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len)) {
-    handleErrors();
-  }
-  plaintext_len = len;
 
-  /*
-   * Finalise the decryption.
-   */
-  if (OPENSSL_SUCCESS != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {
-    handleErrors();
+  for (int i = 0; i < ciphertext_len; i += AES_BLOCK_SIZE) {
+    memset(buf, 0, AES_BLOCK_SIZE);
+    n = (ciphertext_len - i > AES_BLOCK_SIZE) ? 16 : (int)(ciphertext_len - i);
+    memcpy(buf, ciphertext + i, n);
+    if ((status = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_DECRYPT, AES_BLOCK_SIZE, iv, buf, buf)) != 0) {
+      err = "aes decrpyt failed";
+      goto exit;
+    }
+    memcpy(plaintext, buf, AES_BLOCK_SIZE);
+    plaintext += AES_BLOCK_SIZE;
   }
-  plaintext_len += len;
 
   /* Clean up */
-  EVP_CIPHER_CTX_free(ctx);
-
-  return plaintext_len;
-}
-
-static uint8_t *hash_sha(void *base, int baselen, const EVP_MD *type) {
-  EVP_MD_CTX *ctx;
-  // struct hash_chain output;
-
-  // Allocate space for our hash chain.
-  int digest_size = EVP_MD_size(type);
-  uint8_t *data = calloc(1, digest_size);
-
-  // Hash the base data.
-  ctx = EVP_MD_CTX_create();
-  EVP_DigestInit_ex(ctx, type, NULL);
-  EVP_DigestUpdate(ctx, base, baselen);
-  EVP_DigestFinal_ex(ctx, data, NULL);
-
-  EVP_DigestInit_ex(ctx, type, NULL);
-  EVP_DigestUpdate(ctx, data, digest_size);
-  EVP_DigestFinal_ex(ctx, data, NULL);
-  // Cleanup and return the chain.
-  EVP_MD_CTX_destroy(ctx);
-
-  return data;
-}
-
-int encrypt(unsigned char *plaintext, int plaintext_len,
-            unsigned char *ciphertext, uint32_t *ciphertext_len, uint8_t *iv) {
-  char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1 + 1] = {0},
-                                                device_id[IMSI_LEN + 1] = {0};
-  uint8_t key[AES_BLOCK_SIZE * 2] = {0};
-  OpenSSL_add_all_digests();
-  // step 1 fetch Device_ID (IMSI, len <= 15)
-  get_device_id(device_id);
-
-  // step 2 fetch timestamp
-  uint64_t timestamp = time(NULL);
-  // step 3 concatenate (Device_ID, timestamp)
-  snprintf(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN + 1, "%s-%ld", device_id,
-           timestamp);
-  // TODO step 4 hash above string with sha128 and used it as IV
-
-  const EVP_MD *hash = EVP_get_digestbyname(SHA_TYPE);
-  uint8_t *data = hash_sha(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN,
-                           EVP_get_digestbyname(SHA_TYPE));
-
-  // TODO step 5 request the hash of current order from hashchain and use it as
-  // AES key hashchain would be another leagato original application
-  unsigned char *buffer = NULL;
-  get_aes_key((uint8_t *)key);
-
-#ifdef IV_DEBUG
-  memcpy(iv, &iv_global, AES_BLOCK_SIZE);
-#else
-  for (int i = 0; i < 16; i++) {
-    iv[i] = data[i] ^ data[i + 16];
-  }
-#endif
-  *ciphertext_len = aes_encrypt(plaintext, plaintext_len, key, iv, ciphertext);
-
-  free(data);
-  EVP_cleanup();
+  mbedtls_aes_free(&ctx);
   return 0;
+exit:
+  fprintf(stderr, "%s\n", err);
+  mbedtls_aes_free(&ctx);
+  return -1;
 }
 
-int decrypt(unsigned char *ciphertext, uint32_t ciphertext_len, uint8_t *iv,
-            unsigned char *plaintext) {
-  char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1] = {};
-  uint8_t key[AES_BLOCK_SIZE * 2] = {};
-  OpenSSL_add_all_digests();
-  // TODO step 5 request the hash of current order from hashchain and use it as
-  // AES key hashchain would be another leagato original application
-  get_aes_key(key);
+int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *ciphertext, int ciphertext_len,
+            uint8_t iv[AES_BLOCK_SIZE], uint8_t key[AES_BLOCK_SIZE * 2], uint8_t device_id[IMSI_LEN + 1]) {
+  int new_len = 0;
+  char *err = NULL;
+  uint8_t tmp[AES_BLOCK_SIZE];
+  char nonce[IMSI_LEN + MAX_TIMESTAMP_LEN + 1 + 1] = {0};
+  uint8_t digest[32];
+  uint8_t buffer[MAXLINE];
+  mbedtls_md_context_t sha_ctx;
 
-#ifdef IV_DEBUG
-  aes_decrypt(ciphertext, ciphertext_len, key, iv_global, plaintext);
+  mbedtls_md_init(&sha_ctx);
+  if (mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1) != 0) {
+    err = "mbedtls_md_setup error";
+    goto exit;
+  }
+
+  memset(tmp, 0, sizeof(tmp));
+  memset(digest, 0, sizeof(digest));
+  memset(buffer, 0, sizeof(buffer));
+
+  // fetch timestamp
+  uint64_t timestamp = time(NULL);
+  // concatenate (Device_ID, timestamp)
+  snprintf(nonce, IMSI_LEN + MAX_TIMESTAMP_LEN + 1, "%s-%ld", device_id, timestamp);
+  // hash base data
+#ifndef DEBUG
+  mbedtls_md_starts(&sha_ctx);
+  mbedtls_md_update(&sha_ctx, nonce, IMSI_LEN + MAX_TIMESTAMP_LEN);
+  mbedtls_md_finish(&sha_ctx, digest);
+
+  mbedtls_md_starts(&sha_ctx);
+  mbedtls_md_update(&sha_ctx, digest, 32);
+  mbedtls_md_finish(&sha_ctx, digest);
+
+  for (int i = 0; i < 16; ++i) {
+    tmp[i] = digest[i] ^ digest[i + 16];
+  }
+  memcpy(iv, tmp, AES_BLOCK_SIZE);
 #else
-  aes_decrypt(ciphertext, ciphertext_len, key, iv, plaintext);
+  memcpy(tmp, iv, AES_BLOCK_SIZE);
 #endif
+  new_len = aes_encrypt(plaintext, plaintext_len, key, 256, tmp, ciphertext, ciphertext_len);
+#ifdef DEBUG
+  printf("aes encrypt passed\n");
+#endif
+exit:
+  if (err) fprintf(stderr, "%s\n", err);
+  mbedtls_md_free(&sha_ctx);
+  return new_len;
+}
 
-  EVP_cleanup();
+int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *plaintext, int plaintext_len,
+            uint8_t iv[AES_BLOCK_SIZE], uint8_t key[AES_BLOCK_SIZE * 2]) {
+  aes_decrypt(ciphertext, ciphertext_len, key, 256, iv, plaintext, plaintext_len);
   return 0;
 }
