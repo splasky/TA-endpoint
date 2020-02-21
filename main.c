@@ -70,14 +70,19 @@ void send_https_msg(char const *const host, char const *const port, char const *
   free(parser);
 }
 
-void log_address(char *next_addr) {
+int log_address(char *next_addr) {
   FILE *fp;
   char addr_log[ADDR_LEN + 3];
   // Append the next address to the address log file
   fp = fopen(ADDR_LOG_PATH, "a");
+  if (!fp) {
+    perror("open addr_log.log failed:") fclose(fp);
+    return -1;
+  }
   snprintf(addr_log, 83, addr_log_template, next_addr);
   fputs(addr_log, fp);
   fclose(fp);
+  return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -94,7 +99,10 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 #else
-  log_address(next_addr);
+  if (!log(address(next_addr))) {
+    fprintf(stderr, "log address failed");
+    return -1;
+  }
 #endif
 
   char *response = NULL;
