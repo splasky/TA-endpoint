@@ -115,8 +115,7 @@ http_retcode_t http_open(connect_info_t *const info, char const *const seed_nonc
   return RET_OK;
 }
 
-http_retcode_t http_send_request(connect_info_t *const info, const char const *req) {
-  http_retcode_t ret;
+http_retcode_t http_send_request(connect_info_t *const info, const char *req) {
   size_t req_len = strlen(req), write_len = 0, ret_len;
 
   while (write_len < req_len) {
@@ -133,6 +132,7 @@ http_retcode_t http_send_request(connect_info_t *const info, const char const *r
     }
     write_len += ret_len;
   }
+  return RET_OK;
 }
 
 http_retcode_t http_read_response(connect_info_t *const info, char *res, size_t res_len) {
@@ -157,6 +157,7 @@ http_retcode_t http_read_response(connect_info_t *const info, char *res, size_t 
     default:
       break;
   }
+  return RET_OK;
 }
 
 http_retcode_t http_close(connect_info_t *const info) {

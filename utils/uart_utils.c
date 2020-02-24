@@ -50,24 +50,9 @@ static int set_interface_attribs(int fd, int speed) {
   return 0;
 }
 
-static void set_mincount(int fd, int mcount) {
-  struct termios tty;
-
-  if (tcgetattr(fd, &tty) < 0) {
-    printf("Error tcgetattr: %s\n", strerror(errno));
-    return;
-  }
-
-  tty.c_cc[VMIN] = mcount ? 1 : 0;
-  tty.c_cc[VTIME] = 5; /* half second timer */
-
-  if (tcsetattr(fd, TCSANOW, &tty) < 0) printf("Error tcsetattr: %s\n", strerror(errno));
-}
-
 int uart_init() {
   char *portname = "/dev/ttyHS0";
   int fd;
-  int wlen;
 
   fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0) {
@@ -76,7 +61,6 @@ int uart_init() {
   }
   /*baudrate 115200, 8 bits, no parity, 1 stop bit */
   set_interface_attribs(fd, B115200);
-  // set_mincount(fd, 0);                /* set to pure timed read */
 
   return fd;
 }
@@ -99,7 +83,7 @@ char *uart_read(const int fd) {
   if (rdlen > 0) {
     // printf("buf = %s\n", buf);
     response = (char *)malloc(sizeof(char) * rdlen);
-    strncpy(response, buf, READ_BUFFER_SIZE);
+    strncpy(response, (char *)buf, READ_BUFFER_SIZE);
   } else if (rdlen < 0) {
     printf("Error from read: %ld: %s\n", rdlen, strerror(errno));
   }
