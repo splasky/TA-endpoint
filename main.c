@@ -76,7 +76,8 @@ int log_address(char *next_addr) {
   // Append the next address to the address log file
   fp = fopen(ADDR_LOG_PATH, "a");
   if (!fp) {
-    perror("open addr_log.log failed:") fclose(fp);
+    perror("open addr_log.log failed:");
+    fclose(fp);
     return -1;
   }
   snprintf(addr_log, 83, addr_log_template, next_addr);
@@ -98,7 +99,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 #else
-  if (!log(address(next_addr))) {
+  if (log_address(next_addr)) {
     fprintf(stderr, "log address failed");
     return -1;
   }
