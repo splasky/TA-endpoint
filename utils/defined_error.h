@@ -23,7 +23,7 @@ typedef enum {
   RET_HTTP_CERT,
   RET_HTTP_CONNECT,
   RET_HTTP_SSL,
-} http_retcode_t;
+} retcode_t;
 
 #ifdef __cplusplus
 }
