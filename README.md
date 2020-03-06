@@ -10,3 +10,7 @@ A message sent by TA-endpoint needs to be encrypted locally which avoids message
 $ git clone --recursive https://github.com/DLTcollab/TA-endpoint 
 $ make -j$(nproc)
 ```
+## build legato app
+```
+$make legato
+```
