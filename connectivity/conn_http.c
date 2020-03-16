@@ -20,8 +20,8 @@ void mbedtls_debug(void *ctx, int level, const char *file, int line, const char 
   fflush((FILE *)ctx);
 }
 
-http_retcode_t http_open(connect_info_t *const info, char const *const seed_nonce, char const *const host,
-                         char const *const port) {
+retcode_t http_open(connect_info_t *const info, char const *const seed_nonce, char const *const host,
+                    char const *const port) {
   int ret;
 
   if (info->https) {
@@ -115,7 +115,8 @@ http_retcode_t http_open(connect_info_t *const info, char const *const seed_nonc
   return RET_OK;
 }
 
-http_retcode_t http_send_request(connect_info_t *const info, const char *req) {
+retcode_t http_send_request(connect_info_t *const info, const char const *req) {
+  retcode_t ret;
   size_t req_len = strlen(req), write_len = 0, ret_len;
 
   while (write_len < req_len) {
@@ -135,7 +136,7 @@ http_retcode_t http_send_request(connect_info_t *const info, const char *req) {
   return RET_OK;
 }
 
-http_retcode_t http_read_response(connect_info_t *const info, char *res, size_t res_len) {
+retcode_t http_read_response(connect_info_t *const info, char *res, size_t res_len) {
   size_t ret_len;
   const uint32_t timeout_period = 5000;  // in milliseconds
 
@@ -160,7 +161,7 @@ http_retcode_t http_read_response(connect_info_t *const info, char *res, size_t 
   return RET_OK;
 }
 
-http_retcode_t http_close(connect_info_t *const info) {
+retcode_t http_close(connect_info_t *const info) {
   if (info->https) {
     mbedtls_ssl_close_notify(info->ssl_ctx);
 
@@ -184,8 +185,8 @@ http_retcode_t http_close(connect_info_t *const info) {
   return RET_OK;
 }
 
-http_retcode_t set_post_request(char const *const api, char const *const host, const uint32_t port,
-                                char const *const req_body, char **out) {
+retcode_t set_post_request(char const *const api, char const *const host, const uint32_t port,
+                           char const *const req_body, char **out) {
   const char post_req_format[] =
       "POST /%s HTTP/1.1\r\n"
       "Host: %s:%d\r\n"
@@ -206,7 +207,7 @@ http_retcode_t set_post_request(char const *const api, char const *const host, c
   return RET_OK;
 }
 
-http_retcode_t set_get_request(char const *const api, char const *const host, const uint32_t port, char **out) {
+retcode_t set_get_request(char const *const api, char const *const host, const uint32_t port, char **out) {
   const char get_req_format[] =
       "GET /%s HTTP/1.1\r\n"
       "Host: %s:%d\r\n"
