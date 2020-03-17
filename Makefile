@@ -29,8 +29,9 @@ INCLUDES = -I$(THIRD_PARTY_PATH)/http-parser -I$(MBEDTLS_PATH)/include -I$(ROOT_
 LIBS = $(MBEDTLS_PATH)/library/libmbedx509.a $(MBEDTLS_PATH)/library/libmbedtls.a $(MBEDTLS_PATH)/library/libmbedcrypto.a
 export INCLUDES
 
-UTILS_OBJS = $(UTILS_PATH)/crypto_utils.o $(UTILS_PATH)/serializer.o $(UTILS_PATH)/tryte_byte_conv.o $(UTILS_PATH)/uart_utils.o
-# We need to modify this rule here to be compatible to the situation 
+UTILS_OBJS = $(UTILS_PATH)/crypto_utils.o $(UTILS_PATH)/serializer.o $(UTILS_PATH)/tryte_byte_conv.o \
+			 $(UTILS_PATH)/uart_utils.o $(UTILS_PATH)/protocol.o
+# We need to modify this rule here to be compatible to the situation
 # that we have several different ways of connectivity in the future
 CONNECTIVITY_OBJS = conn_http.o
 
