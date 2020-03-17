@@ -66,8 +66,8 @@ int get_aes_key(const uint8_t *key) {
   return 0;
 }
 
-int aes_encrypt(const unsigned char *plaintext, int plaintext_len, const unsigned char *key, unsigned int keybits,
-                unsigned char iv[AES_BLOCK_SIZE], unsigned char *ciphertext, int ciphertext_len) {
+int aes_encrypt(const char *plaintext, int plaintext_len, const unsigned char *key, unsigned int keybits,
+                unsigned char iv[AES_BLOCK_SIZE], char *ciphertext, int ciphertext_len) {
   mbedtls_aes_context ctx;
   int status;
   unsigned char buf[AES_BLOCK_SIZE];
@@ -114,8 +114,8 @@ exit:
   return -1;
 }
 
-int aes_decrypt(const unsigned char *ciphertext, int ciphertext_len, const unsigned char *key, unsigned int keybits,
-                unsigned char iv[AES_BLOCK_SIZE], unsigned char *plaintext, int plaintext_len) {
+int aes_decrypt(const char *ciphertext, int ciphertext_len, const unsigned char *key, unsigned int keybits,
+                unsigned char iv[AES_BLOCK_SIZE], char *plaintext, int plaintext_len) {
   mbedtls_aes_context ctx;
   int status, n = 0;
   char *err;
@@ -155,8 +155,8 @@ exit:
   return -1;
 }
 
-int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *ciphertext, int ciphertext_len,
-            uint8_t iv[AES_BLOCK_SIZE], uint8_t key[AES_BLOCK_SIZE * 2], uint8_t device_id[IMSI_LEN + 1]) {
+int encrypt(const char *plaintext, int plaintext_len, char *ciphertext, int ciphertext_len, uint8_t iv[AES_BLOCK_SIZE],
+            uint8_t key[AES_CBC_KEY_SIZE], uint8_t device_id[IMSI_LEN + 1]) {
   int new_len = 0;
   char *err = NULL;
   uint8_t tmp[AES_BLOCK_SIZE];
@@ -206,8 +206,7 @@ exit:
   return new_len;
 }
 
-int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *plaintext, int plaintext_len,
-            uint8_t iv[AES_BLOCK_SIZE], uint8_t key[AES_BLOCK_SIZE * 2]) {
-  aes_decrypt(ciphertext, ciphertext_len, key, 256, iv, plaintext, plaintext_len);
-  return 0;
+int decrypt(const char *ciphertext, int ciphertext_len, char *plaintext, int plaintext_len, uint8_t iv[AES_BLOCK_SIZE],
+            uint8_t key[AES_CBC_KEY_SIZE]) {
+  return aes_decrypt(ciphertext, ciphertext_len, key, 256, iv, plaintext, plaintext_len);
 }

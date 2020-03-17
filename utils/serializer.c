@@ -14,7 +14,7 @@
 #define IV_LEN 16
 #define UINT32_LEN 10
 
-int serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const uint8_t *ciphertext, char *out_msg,
+int serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const char *ciphertext, char *out_msg,
                   uint32_t *out_msg_len) {
   char str_ciphertext_len[UINT32_LEN + 1] = {};
   char *ptr = out_msg;
@@ -37,7 +37,7 @@ int serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const uint8_t *cip
   return 0;
 }
 
-int deserialize_msg(char *msg, const uint8_t *iv, uint32_t *ciphertext_len, uint8_t *ciphertext) {
+int deserialize_msg(char *msg, const uint8_t *iv, uint32_t *ciphertext_len, char *ciphertext) {
   char str_ciphertext_len[UINT32_LEN + 1] = {};
   char *ptr = msg;
   uint32_t ciphertext_len_tmp;

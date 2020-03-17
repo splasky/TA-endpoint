@@ -40,7 +40,7 @@ typedef struct {
 
 retcode_t http_open(connect_info_t *const info, char const *const seed_nonce, char const *const host,
                     char const *const port);
-retcode_t http_send_request(connect_info_t *const info, const char const *req);
+retcode_t http_send_request(connect_info_t *const info, const char *req);
 retcode_t http_read_response(connect_info_t *const info, char *res, size_t res_len);
 retcode_t http_close(connect_info_t *const info);
 

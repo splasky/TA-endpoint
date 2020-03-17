@@ -15,9 +15,9 @@
 extern "C" {
 #endif
 
-int serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const uint8_t *ciphertext, char *out_msg,
+int serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const char *ciphertext, char *out_msg,
                   uint32_t *out_msg_len);
-int deserialize_msg(char *msg, const uint8_t *iv, uint32_t *ciphertext_len, uint8_t *ciphertext);
+int deserialize_msg(char *msg, const uint8_t *iv, uint32_t *ciphertext_len, char *ciphertext);
 
 #ifdef __cplusplus
 }
