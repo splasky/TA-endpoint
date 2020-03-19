@@ -1,0 +1,12 @@
+executables:
+{
+    taEndpoint = (legato)
+}
+
+processes:
+{
+    run:
+    {
+        (taEndpoint)
+    }
+}

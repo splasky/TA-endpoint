@@ -39,3 +39,7 @@ addr_log.log
 tests/build/
 *.c.d
 */*.c.d
+
+# Legato build targets
+_build_ta-endpoint/
+ta_endpoint.wp77xx.update

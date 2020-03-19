@@ -1,0 +1,42 @@
+sources:
+{
+    endpoint.c
+}
+
+cflags:
+{
+    -g -O0
+    -DDEBUG=1
+    -DTA_HOST=tangle-accel.puyuma.org -DTA_PORT=434 -DTA_API=transaction/
+    -I$CURDIR/../utils
+    -I$CURDIR/../connectivity
+    -I$CURDIR/../third_party/http-parser
+    -I$CURDIR/../third_party/mbedtls/include
+}
+
+ldflags:
+{
+    -L$CURDIR/../
+}
+
+bundles:
+{
+    file:
+    {
+        [r] resolv.conf /etc/
+        $CURDIR/../libta_endpoint.so /lib/
+    }
+}
+
+requires:
+{
+    device:
+    {
+        [rw] /dev/ttyHS0 /dev/ttyHS0
+    }
+
+    lib:
+    {
+        libta_endpoint.so
+    }
+}

@@ -32,10 +32,14 @@
 #define MSG "%s:%s"
 #else
 #define MSG "%s:THISISMSG9THISISMSG9THISISMSG"
-#define ADDR_LOG_PATH "addr_log.log"
 #endif
 
-static char addr_log_template[] = "\n%s\n";
+#define SSL_SEED "nonce"
+#define ADDRESS                                                                \
+  "POWEREDBYTANGLEACCELERATOR999999999999999999999999999999999999999999999999" \
+  "999999A"
+#define ADDR_LEN 81
+#define ADDR_LOG_PATH "ta-endpoint.log"
 
 int log_address(uint8_t *next_addr) {
   FILE *fp;
@@ -67,8 +71,8 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 #else
-  if (log_address(next_addr)) {
-    fprintf(stderr, "log address failed");
+  if (write_address(ADDR_LOG_PATH, next_addr, ADDR_LEN) != 0) {
+    fprintf(stderr, "log address failed\n");
     return -1;
   }
 #endif
@@ -84,7 +88,6 @@ int main(int argc, char *argv[]) {
   tv.tv_sec = 0;
   tv.tv_usec = 500;
   while (true) {
-    // TODO add select
     FD_ZERO(&rset);
     FD_SET(fd, &rset);
     select(fd + 1, &rset, NULL, NULL, &tv);
@@ -101,24 +104,24 @@ int main(int argc, char *argv[]) {
       response = uart_read(fd);
 #else
   response = strdup("This is a test");
-  printf("next_addr = %s \n", next_addr);
-  log_address(next_addr);
+  printf("next_addr = %.*s \n", ADDR_LEN, next_addr);
+  write_address(ADDR_LOG_PATH, next_addr, ADDR_LEN);
 #endif
       // real transmitted data
 #ifndef DEBUG
-      snprintf((char *)raw_msg, raw_msg_len, MSG, next_addr, response);
+      snprintf(raw_msg, raw_msg_len, MSG, next_addr, response);
 #else
-  snprintf((char *)raw_msg, raw_msg_len, MSG, next_addr);
+  snprintf(raw_msg, raw_msg_len, MSG, next_addr);
 #endif
       printf("Raw Message: %s\n", raw_msg);
-      uint8_t private_key[AES_BLOCK_SIZE * 2] = {0};
-      uint8_t id[IMSI_LEN + 1] = {0};
+      uint8_t private_key[AES_KEY_SIZE] = {0};
+      uint8_t id[IMSI_LEN] = {0};
 #ifndef DEBUG
       if (get_aes_key(private_key) != 0) {
         fprintf(stderr, "%s\n", "get aes key error");
         return -1;
       }
-      // fetch Device_ID (IMSI, len <= 15)
+      // fetch Device_ID (IMSI, len <= 16)
       if (get_device_id(id) != 0) {
         fprintf(stderr, "%s\n", "get device id error");
         return -1;
@@ -137,9 +140,9 @@ int main(int argc, char *argv[]) {
   memcpy(private_key, key, 16);
   memcpy(iv, iv_global, 16);
 #endif
-      ciphertext_len = encrypt(raw_msg, strlen((char *)raw_msg), ciphertext, 1024, iv, private_key, id);
+      ciphertext_len = ta_encrypt(raw_msg, strlen(raw_msg), ciphertext, 1024, iv, private_key, id);
       if (ciphertext_len == 0) {
-        fprintf(stderr, "%s\n", "encrypt msg error");
+        fprintf(stderr, "%s\n", "ta_encrypt msg error");
         return -1;
       }
       serialize_msg(iv, ciphertext_len, ciphertext, msg, &msg_len);
@@ -161,6 +164,5 @@ int main(int argc, char *argv[]) {
     }
   }
 #endif
-
   return 0;
 }
