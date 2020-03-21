@@ -95,9 +95,10 @@ int log_address(char *next_addr) {
 }
 
 int main(int argc, char *argv[]) {
-  uint8_t ciphertext[1024] = {0}, iv[16] = {0}, raw_msg[1000] = {0};
+  char tryte_msg[1024] = {0}, msg[1024] = {0}, addr[ADDR_LEN + 1] = ADDRESS, next_addr[ADDR_LEN + 1] = {0},
+       ciphertext[1024] = {0}, raw_msg[1000] = {0};
   uint32_t raw_msg_len = 1 + ADDR_LEN + 20, ciphertext_len = 0, msg_len;
-  char tryte_msg[1024] = {0}, msg[1024] = {0}, addr[ADDR_LEN + 1] = ADDRESS, next_addr[ADDR_LEN + 1] = {0};
+  uint8_t iv[AES_BLOCK_SIZE] = {0};
   srand(time(NULL));
 
 #ifndef DEBUG

@@ -123,8 +123,7 @@ retcode_t http_open(connect_info_t *const info, char const *const seed_nonce, ch
   return RET_OK;
 }
 
-retcode_t http_send_request(connect_info_t *const info, const char const *req) {
-  retcode_t ret;
+retcode_t http_send_request(connect_info_t *const info, const char *req) {
   size_t req_len = strlen(req), write_len = 0, ret_len;
 
   while (write_len < req_len) {
