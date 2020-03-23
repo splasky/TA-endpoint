@@ -15,8 +15,39 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Serialize ciphertext and initialize vector together, the out put message
+ * format show as below:
+ * - initialize vector(16 bytes)
+ * - ciphertext length(10 bytes)
+ * - ciphertext(other bytest)
+ *
+ * @param[in] iv Pointer to initialize vector
+ * @param[in] ciphertext_len Length of ciphertext
+ * @param[in] ciphertext Ciphertext to be serialized
+ * @param[out] out_msg Pointer to output message
+ * @param[out] out_msg_len Pointer to length of serialized message
+ *
+ * @return
+ * - 0 on success
+ * - non-zero on error
+ */
 int serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const char *ciphertext, char *out_msg,
                   uint32_t *out_msg_len);
+
+/**
+ * @brief Deserialize message from serialize_msg
+ *
+ * @param[in] msg Pointer to serialize message
+ * @param[in] iv Pointer to initialize vector
+ * @param[out] ciphertext_len Pointer to plaintext length
+ * @param[out] ciphertext Pointer to plaintext output array
+ *
+ * @return
+ * - 0 on success
+ * - non-zero on error
+ * @see #serialize_msg
+ */
 int deserialize_msg(char *msg, const uint8_t *iv, uint32_t *ciphertext_len, char *ciphertext);
 
 #ifdef __cplusplus

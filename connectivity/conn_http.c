@@ -192,7 +192,7 @@ retcode_t http_close(connect_info_t *const info) {
   return RET_OK;
 }
 
-retcode_t set_post_request(char const *const api, char const *const host, const uint32_t port,
+retcode_t set_post_request(char const *const path, char const *const host, const uint32_t port,
                            char const *const req_body, char **out) {
   const char post_req_format[] =
       "POST /%s HTTP/1.1\r\n"
@@ -204,28 +204,28 @@ retcode_t set_post_request(char const *const api, char const *const host, const 
       "%s\r\n\r\n";
 
   size_t out_len =
-      strlen(post_req_format) + strlen(api) + strlen(host) + MAX_PORT_LEN + MAX_CONTENT_LENGTH_LEN + strlen(req_body);
+      strlen(post_req_format) + strlen(path) + strlen(host) + MAX_PORT_LEN + MAX_CONTENT_LENGTH_LEN + strlen(req_body);
   *out = (char *)malloc(sizeof(char) * out_len);
   if (!*out) {
     return RET_OOM;
   }
-  snprintf(*out, out_len, post_req_format, api, host, port, (int)strlen(req_body), req_body);
+  snprintf(*out, out_len, post_req_format, path, host, port, (int)strlen(req_body), req_body);
 
   return RET_OK;
 }
 
-retcode_t set_get_request(char const *const api, char const *const host, const uint32_t port, char **out) {
+retcode_t set_get_request(char const *const path, char const *const host, const uint32_t port, char **out) {
   const char get_req_format[] =
       "GET /%s HTTP/1.1\r\n"
       "Host: %s:%d\r\n"
       "\r\n\r\n";
 
-  size_t out_len = strlen(get_req_format) + strlen(api) + strlen(host) + MAX_PORT_LEN;
+  size_t out_len = strlen(get_req_format) + strlen(path) + strlen(host) + MAX_PORT_LEN;
   *out = (char *)malloc(sizeof(char) * out_len);
   if (!*out) {
     return RET_OOM;
   }
-  snprintf(*out, out_len, get_req_format, api, host, port);
+  snprintf(*out, out_len, get_req_format, path, host, port);
 
   return RET_OK;
 }

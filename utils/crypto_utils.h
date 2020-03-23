@@ -20,16 +20,94 @@ extern "C" {
 #define MAXLINE 1024
 #define IMSI_LEN 15
 
+/**
+ * @brief Obtain device IMSI or physical ID
+ *
+ * @param[out] device_id Device id output
+ *
+ * @return
+ * - 0 on success
+ * - -1 on failed
+ */
 int get_device_id(const char *device_id);
+
+/**
+ * @brief Obtain aes key from hashchain
+ *
+ * @param[out] key Device key output
+ *
+ * @return
+ * - 0 on success
+ * - -1 on failed
+ */
 int get_aes_key(const uint8_t *key);
+
+/**
+ * @brief Encrypt plaintext
+ *
+ * @param[in] plaintext The text to be encrypted
+ * @param[in] plaintext_len Plaintext length
+ * @param[out] ciphertext Ciphrtext
+ * @param[in] ciphertext_len Ciphertext length
+ * @param[in, out] iv[AES_BLOCK_SIZE] Initialization vector
+ * @param[in] key[AES_CBC_KEY_SIZE] Encryption key
+ * @param[in] device_id[IMSI_LEN + 1] Device id
+ *
+ * @return
+ * - Ciphertext text new length on success
+ * - 0 on error
+ */
 int encrypt(const char *plaintext, int plaintext_len, char *ciphertext, int ciphertext_len, uint8_t iv[AES_BLOCK_SIZE],
             uint8_t key[AES_CBC_KEY_SIZE], uint8_t device_id[IMSI_LEN + 1]);
-int decrypt(const char *ciphertext, int ciphertext_len, char *plaintext, int plaintext_len, uint8_t iv[AES_BLOCK_SIZE],
-            uint8_t key[AES_CBC_KEY_SIZE]);
+
+/**
+ * @brief Decrypt ciphertext
+ *
+ * @param[in] ciphertext Ciphertext
+ * @param[in] ciphertext_len Ciphertext length
+ * @param[out] plaintext Plaintext
+ * @param[in] plaintext_len Plaintext length
+ * @param[in] iv[AES_BLOCK_SIZE] Initialization vector
+ * @param[in] key[AES_CBC_KEY_SIZE] Decryption key
+ *
+ * @return #retcode_t
+ */
+retcode_t decrypt(const char *ciphertext, int ciphertext_len, char *plaintext, int plaintext_len,
+                  uint8_t iv[AES_BLOCK_SIZE], uint8_t key[AES_CBC_KEY_SIZE]);
+
+/**
+ * @brief Implementation of AES encryption algorithm
+ *
+ * @param[in] plaintext Plaintext
+ * @param[in] plaintext_len Plaintext length
+ * @param[in] key Encryption key
+ * @param[in] keybits Length of key
+ * @param[in, out] iv[AES_BLOCK_SIZE] Initialization vector
+ * @param[out] ciphertext Ciphertext
+ * @param[in] ciphertext_len Ciphertext length
+ *
+ * @return
+ * - Ciphertext new length on success
+ * - -1 on error
+ */
 int aes_encrypt(const char *plaintext, int plaintext_len, const unsigned char *key, unsigned int keybits,
                 unsigned char iv[AES_BLOCK_SIZE], char *ciphertext, int ciphertext_len);
-int aes_decrypt(const char *ciphertext, int ciphertext_len, const unsigned char *key, unsigned int keybits,
-                unsigned char iv[AES_BLOCK_SIZE], char *plaintext, int plaintext_len);
+
+/**
+ * @brief Implementation of AES decrypt algorithm
+ *
+ * @param[in] ciphertext Ciphertext
+ * @param[in] ciphertext_len Ciphertext length
+ * @param[in] key Decryption key
+ * @param[in] keybits Length of decryption key
+ * @param[in] iv[AES_BLOCK_SIZE] Initialization vector
+ * @param[out] plaintext Plaintext
+ * @param[in] plaintext_len Plaintext length
+ *
+ * @return #retcode_t
+ */
+retcode_t aes_decrypt(const char *ciphertext, int ciphertext_len, const unsigned char *key, unsigned int keybits,
+                      unsigned char iv[AES_BLOCK_SIZE], char *plaintext, int plaintext_len);
 
 #ifdef __cplusplus
 }
