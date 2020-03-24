@@ -13,6 +13,7 @@
 #include "connectivity/conn_http.h"
 #include "http_parser.h"
 #include "utils/crypto_utils.h"
+#include "utils/protocol.h"
 #include "utils/serializer.h"
 #include "utils/tryte_byte_conv.h"
 #include "utils/uart_utils.h"
@@ -46,36 +47,6 @@ void gen_trytes(uint16_t len, char *out) {
     rand_index = rand() % 27;
     out[i] = tryte_alphabet[rand_index];
   }
-}
-
-void send_https_msg(char const *const host, char const *const port, char const *const api, char const *const tryte_msg,
-                    char const *const addr) {
-  char req_body[1024] = {}, res[4096] = {0};
-  char *req = NULL;
-  sprintf(req_body, REQ_BODY, tryte_msg, addr);
-  set_post_request(api, host, atoi(port), req_body, &req);
-
-#ifdef DEBUG
-  printf("req packet = \n%s", req);
-#endif
-
-  http_parser_settings settings;
-  settings.on_body = parser_body_callback;
-  http_parser *parser = malloc(sizeof(http_parser));
-
-  while (parser->status_code != HTTP_OK) {
-    connect_info_t info = {.https = true};
-    http_open(&info, SSL_SEED, host, port);
-    http_send_request(&info, req);
-    http_read_response(&info, res, sizeof(res) / sizeof(char));
-    http_close(&info);
-    http_parser_init(parser, HTTP_RESPONSE);
-    http_parser_execute(parser, &settings, res, strlen(res));
-    printf("HTTP Response: %s\n", http_res_body);
-    free(http_res_body);
-    http_res_body = NULL;
-  }
-  free(parser);
 }
 
 int log_address(char *next_addr) {
@@ -188,7 +159,7 @@ int main(int argc, char *argv[]) {
       bytes_to_trytes((const unsigned char *)msg, msg_len, tryte_msg);
 
       // Init http session. verify: check the server CA cert.
-      send_https_msg(HOST, PORT, API, tryte_msg, addr);
+      send_https_msg(HOST, PORT, API, tryte_msg, msg_len, SSL_SEED);
 
       strncpy(addr, next_addr, ADDR_LEN);
       free(response);
