@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "serializer.h"
+#include "unity.h"
 
 const uint8_t iv[16] = {164, 3, 98, 193, 52, 162, 107, 252, 184, 42, 74, 225, 157, 26, 88, 72};
 const uint8_t payload[] = {
@@ -27,7 +28,11 @@ const uint8_t payload[] = {
     251, 91,  130, 34,  222, 70,  36,  45,  140, 85,  207, 141, 48,  1,   206, 31,  171, 235, 238, 126, 113};
 const uint16_t payload_len = 263;
 
-int main() {
+void setUp(void) {}
+
+void tearDown(void) {}
+
+void test_serialize_deserialize(void) {
   uint8_t out[1024], iv_out[16], payload_out[1024];
   uint32_t payload_len_out, out_msg_len;
   int rc1 = serialize_msg(iv, payload_len, payload, out, &out_msg_len);
@@ -36,24 +41,17 @@ int main() {
   out[1023] = 0;
   payload_out[payload_len] = 0;
 
-  if (!memcmp(iv, iv_out, 16)) {
-    printf("iv SUCCESS \n");
-  } else {
-    printf("iv FAILED \n");
-  }
+  TEST_ASSERT_EQUAL_UINT8_ARRAY(iv, iv_out, 16);
 
-  if (payload_len == payload_len_out) {
-    printf("payload_len SUCCESS \n");
-  } else {
-    printf("payload_len FAILED \n");
-  }
+  TEST_ASSERT_EQUAL_UINT32(payload_len, payload_len_out);
 
-  if (!memcmp(payload, payload_out, payload_len)) {
-    printf("payload SUCCESS \n");
-  } else {
-    printf("payload FAILED \n");
-    printf("payload %s \n", payload);
-    printf("payload_out %s \n", payload_out);
-  }
-  return 0;
+  TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, payload_out, payload_len);
+}
+
+int main(void) {
+  UNITY_BEGIN();
+
+  RUN_TEST(test_serialize_deserialize);
+
+  return UNITY_END();
 }
