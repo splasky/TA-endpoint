@@ -16,15 +16,13 @@
 #include "utils/protocol.h"
 #include "utils/serializer.h"
 #include "utils/tryte_byte_conv.h"
+#include "utils/trytes.h"
 #include "utils/uart_utils.h"
 
 #define HOST "tangle-accel.puyuma.org"
 #define PORT "443"
 #define API "transaction/"
 #define SSL_SEED "nonce"
-#define REQ_BODY                                                           \
-  "{\"value\": 0, \"tag\": \"POWEREDBYTANGLEACCELERATOR9\", \"message\": " \
-  "\"%s\", \"address\":\"%s\"}\r\n\r\n"
 #define ADDRESS                                                                \
   "POWEREDBYTANGLEACCELERATOR999999999999999999999999999999999999999999999999" \
   "999999A"
@@ -39,17 +37,7 @@
 
 static char addr_log_template[] = "\n%s\n";
 
-void gen_trytes(uint16_t len, char *out) {
-  // TODO: warning this may be risk
-  const char tryte_alphabet[] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  uint8_t rand_index;
-  for (int i = 0; i < len; i++) {
-    rand_index = rand() % 27;
-    out[i] = tryte_alphabet[rand_index];
-  }
-}
-
-int log_address(char *next_addr) {
+int log_address(uint8_t *next_addr) {
   FILE *fp;
   char addr_log[ADDR_LEN + 3];
   // Append the next address to the address log file
@@ -66,10 +54,10 @@ int log_address(char *next_addr) {
 }
 
 int main(int argc, char *argv[]) {
-  char tryte_msg[1024] = {0}, msg[1024] = {0}, addr[ADDR_LEN + 1] = ADDRESS, next_addr[ADDR_LEN + 1] = {0},
-       ciphertext[1024] = {0}, raw_msg[1000] = {0};
+  char tryte_msg[1024] = {0}, msg[1024] = {0}, addr[ADDR_LEN + 1] = ADDRESS, ciphertext[1024] = {0},
+       raw_msg[1000] = {0};
   uint32_t raw_msg_len = 1 + ADDR_LEN + 20, ciphertext_len = 0, msg_len;
-  uint8_t iv[AES_BLOCK_SIZE] = {0};
+  uint8_t iv[AES_BLOCK_SIZE] = {0}, next_addr[ADDR_LEN + 1] = {0};
   srand(time(NULL));
 
 #ifndef DEBUG
@@ -107,8 +95,7 @@ int main(int argc, char *argv[]) {
       tm_info = localtime(&timer);
       strftime(time_str, 26, "%Y-%m-%d %H:%M:%S", tm_info);
       printf("%s\n", time_str);
-      // TODO: not good
-      gen_trytes(ADDR_LEN, next_addr);
+      gen_rand_trytes(ADDR_LEN, next_addr);
 
 #ifndef DEBUG
       response = uart_read(fd);
@@ -161,7 +148,7 @@ int main(int argc, char *argv[]) {
       // Init http session. verify: check the server CA cert.
       send_https_msg(HOST, PORT, API, tryte_msg, msg_len, SSL_SEED);
 
-      strncpy(addr, next_addr, ADDR_LEN);
+      memcpy(addr, next_addr, ADDR_LEN);
       free(response);
       response = NULL;
       printf(

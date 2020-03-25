@@ -30,8 +30,7 @@ LIBS = $(MBEDTLS_PATH)/library/libmbedx509.a $(MBEDTLS_PATH)/library/libmbedtls.
 export INCLUDES
 
 UTILS_OBJS = $(UTILS_PATH)/crypto_utils.o $(UTILS_PATH)/serializer.o $(UTILS_PATH)/tryte_byte_conv.o \
-			 $(UTILS_PATH)/uart_utils.o $(UTILS_PATH)/protocol.o
-# We need to modify this rule here to be compatible to the situation
+			 $(UTILS_PATH)/uart_utils.o $(UTILS_PATH)/protocol.o $(UTILS_PATH)/trytes.o
 # that we have several different ways of connectivity in the future
 CONNECTIVITY_OBJS = conn_http.o
 
