@@ -30,39 +30,30 @@ INCLUDES = -I$(THIRD_PARTY_PATH)/http-parser -I$(MBEDTLS_PATH)/include -I$(ROOT_
 LIBS = $(MBEDTLS_PATH)/library/libmbedx509.a $(MBEDTLS_PATH)/library/libmbedtls.a $(MBEDTLS_PATH)/library/libmbedcrypto.a
 export INCLUDES
 
-UTILS_OBJS = $(UTILS_PATH)/crypto_utils.o $(UTILS_PATH)/serializer.o $(UTILS_PATH)/tryte_byte_conv.o \
-			 $(UTILS_PATH)/uart_utils.o $(UTILS_PATH)/protocol.o $(UTILS_PATH)/trytes.o
-# that we have several different ways of connectivity in the future
-CONNECTIVITY_OBJS = conn_http.o
+DEPS :=
+OBJS := main.o $(HTTP_PARSER_PATH)/http_parser.o
+SUBDIR = $(UTILS_PATH) $(CONNECTIVITY_PATH)
 
-OBJS = main.o $(HTTP_PARSER_PATH)/http_parser.o $(UTILS_OBJS) $(CONNECTIVITY_OBJS)
+OBJS += $(foreach x,$(SUBDIR),$(patsubst %.c,%.o,$(wildcard $(x)/*.c)))
+DEPS += $(foreach x,$(SUBDIR),$(patsubst %.c,%.o.d,$(wildcard $(x)/*.c)))
+export OBJS
 
 .SUFFIXES:.c .o
-.PHONY: all clean test pre-build
+.PHONY: all clean test git-hook utils
 
-all: pre-build ta_client mbedtls_make
+all: git-hook $(OBJS) ta_client mbedtls_make utils
 
-ta_client: mbedtls_make $(OBJS)
+ta_client: mbedtls_make utils
 	@echo Linking: $@ ....
 	$(CC) -o $@ $(OBJS) $(LIBS)
-
 mbedtls_make:
-	@for dir in $(MBEDTLS_PATH); do \
-		$(MAKE) -C $$dir ; \
-		if [ $$? != 0 ]; then exit 1; fi; \
-	done
-
-conn_http.o: connectivity/conn_http.c
-	@echo Compiling $@ ...
-	$(CC) -v -c $(CFLAGS) $(INCLUDES) -o $@ $<
-
-main.o: main.c $(UTILS_OBJS)
-	@echo Compiling: $< ....
-	$(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $<
-$(UTILS_OBJS):
-	$(MAKE) -C $(UTILS_PATH)
-test: $(TEST_PATH) $(UTILS_OBJS)
+	$(MAKE) -C $(MBEDTLS_PATH) lib
+utils:
+	$(MAKE) -C $(HTTP_PARSER_PATH) http_parser.o
+test: utils
 	$(MAKE) -C $(TEST_PATH)
+%.o:%.c
+	$(CC) -v -c $(CFLAGS) $(INCLUDES) -MMD -MF $@.d -o $@ $<
 
 clean: clean_client clean_third_party clean_test
 
@@ -70,9 +61,7 @@ clean_test:
 	$(MAKE) -C $(TEST_PATH) clean
 
 clean_client:
-	$(MAKE) -C $(UTILS_PATH) clean
-	$(MAKE) -C $(CONNECTIVITY_PATH) clean
-	rm -f ta_client *.o *.c.d
+	rm -f $(OBJS) ta_client *.o *.c.d
 
 clean_third_party: clean_mbedtls clean_http_parser
 
@@ -85,5 +74,5 @@ clean_mbedtls:
 clean_http_parser:
 	$(MAKE) -C $(HTTP_PARSER_PATH) clean
 
-pre-build:
+git-hook:
 	git config core.hooksPath hooks

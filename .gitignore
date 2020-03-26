@@ -37,5 +37,5 @@ build/
 *.gcno
 addr_log.log
 tests/build/
-*.c.d
-*/*.c.d
+*.o.d
+*/*.o.d
