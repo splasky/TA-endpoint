@@ -33,41 +33,41 @@ const uint8_t test_payload2[] = {
     251, 91,  130, 34,  222, 70,  36,  45,  140, 85,  207, 141, 48,  1,   206, 31,  171, 235, 238, 126, 113};
 const uint16_t test_paylen2 = 263;
 
-const uint8_t iv_global[16] = {164, 3, 98, 193, 52, 162, 107, 252, 184, 42, 74, 225, 157, 26, 88, 72};
+const uint8_t iv_global[AES_BLOCK_SIZE] = {164, 3, 98, 193, 52, 162, 107, 252, 184, 42, 74, 225, 157, 26, 88, 72};
 const char* device_id = "470010171566423";
-const uint8_t key[32] = {82,  142, 184, 64,  74, 105, 126, 65,  154, 116, 14,  193, 208, 41,  8,  115,
-                         158, 252, 228, 160, 79, 5,   167, 185, 13,  159, 135, 113, 49,  209, 58, 68};
+const uint8_t key[AES_CBC_KEY_SIZE] = {82,  142, 184, 64,  74, 105, 126, 65,  154, 116, 14,  193, 208, 41,  8,  115,
+                                       158, 252, 228, 160, 79, 5,   167, 185, 13,  159, 135, 113, 49,  209, 58, 68};
 
 void setUp(void) {}
 
 void tearDown(void) {}
 
 void test_aes(void) {
-  uint8_t ciphertext[1024] = {0}, iv[16] = {0}, plain[1024] = {0};
+  uint8_t ciphertext[MAXLINE] = {0}, iv[AES_BLOCK_SIZE] = {0}, plain[MAXLINE] = {0};
   uint32_t ciphertext_len = 0;
   /* mbedtls_aes needs r/w iv[] */
-  uint8_t iv_en[16], iv_dec[16];
+  uint8_t iv_en[AES_BLOCK_SIZE], iv_dec[AES_BLOCK_SIZE];
 
-  memcpy(iv_en, iv_global, 16);
-  memcpy(iv_dec, iv_global, 16);
+  memcpy(iv_en, iv_global, AES_BLOCK_SIZE);
+  memcpy(iv_dec, iv_global, AES_BLOCK_SIZE);
 
-  ciphertext_len = aes_encrypt(test_payload1, test_paylen1, key, keybits, iv_en, ciphertext, 1024);
-  aes_decrypt(ciphertext, ciphertext_len, key, keybits, iv_dec, plain, 1024);
+  ciphertext_len = aes_encrypt(test_payload1, test_paylen1, key, keybits, iv_en, ciphertext, MAXLINE);
+  aes_decrypt(ciphertext, ciphertext_len, key, keybits, iv_dec, plain, MAXLINE);
 
   TEST_ASSERT_EQUAL_UINT8_ARRAY(test_payload1, plain, test_paylen1);
 
-  ciphertext_len = aes_encrypt(test_payload2, test_paylen2, key, keybits, iv_en, ciphertext, 1024);
-  aes_decrypt(ciphertext, ciphertext_len, key, keybits, iv_dec, plain, 1024);
+  ciphertext_len = aes_encrypt(test_payload2, test_paylen2, key, keybits, iv_en, ciphertext, MAXLINE);
+  aes_decrypt(ciphertext, ciphertext_len, key, keybits, iv_dec, plain, MAXLINE);
 
   TEST_ASSERT_EQUAL_UINT8_ARRAY(test_payload2, plain, test_paylen2);
 }
 
 void test_wrapper(void) {
-  uint8_t ciphertext[1024] = {0}, iv[16] = {0}, plain[1024] = {0};
+  uint8_t ciphertext[MAXLINE] = {0}, iv[AES_BLOCK_SIZE] = {0}, plain[MAXLINE] = {0};
   uint32_t ciphertext_len = 0;
   // TODO:request the hash of current order from hashchain and use it as
   // AES key hashchain would be another leagato original application
-  uint8_t private_key[AES_BLOCK_SIZE * 2] = {0};
+  uint8_t private_key[AES_CBC_KEY_SIZE] = {0};
   char id[IMSI_LEN + 1] = {0};
 
 #ifndef DEBUG
@@ -75,13 +75,13 @@ void test_wrapper(void) {
   // fetch Device_ID (IMSI, len <= 15)
   TEST_ASSERT_EQUAL_INT_MESSAGE(0, get_device_key(id), "get device id error");
 #else
-  memcpy(id, device_id, 16);
+  memcpy(id, device_id, IMSI_LEN + 1);
   memcpy(private_key, key, 16);
-  memcpy(iv, iv_global, 16);
+  memcpy(iv, iv_global, AES_BLOCK_SIZE);
 #endif
 
-  ciphertext_len = encrypt((char*)test_payload2, test_paylen2, ciphertext, 1024, iv, private_key, id);
-  decrypt(ciphertext, ciphertext_len, plain, 1024, iv, private_key);
+  ciphertext_len = encrypt((char*)test_payload2, test_paylen2, ciphertext, MAXLINE, iv, private_key, id);
+  decrypt(ciphertext, ciphertext_len, plain, MAXLINE, iv, private_key);
 
   /* compare payload */
   TEST_ASSERT_EQUAL_UINT8_ARRAY(test_payload2, plain, test_paylen2);
