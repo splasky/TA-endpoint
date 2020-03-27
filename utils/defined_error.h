@@ -13,16 +13,17 @@
 extern "C" {
 #endif
 
-#define HTTP_OK 200
+#define HTTP_OK 200 /**< HTTP status codes */
 
+/* status code */
 typedef enum {
-  RET_OK,
-  RET_WRITE_ERROR,
-  RET_OOM,
-  RET_HTTP_INIT,
-  RET_HTTP_CERT,
-  RET_HTTP_CONNECT,
-  RET_HTTP_SSL,
+  RET_OK,           /**< success */
+  RET_WRITE_ERROR,  /**< write error */
+  RET_OOM,          /**< out of memory */
+  RET_HTTP_INIT,    /**< failed on HTTP init */
+  RET_HTTP_CERT,    /**< failed on x509 cert parse */
+  RET_HTTP_CONNECT, /**< failed on HTTP initial connection */
+  RET_HTTP_SSL,     /**< failed on setting ssl config */
 } retcode_t;
 
 #ifdef __cplusplus

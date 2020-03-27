@@ -12,12 +12,11 @@
 #include "defined_error.h"
 
 /**
- * @brief Send message via http protocol
+ * @brief Send message via HTTP(S) protocol
  *
- * @param[in] host Https host
- * @param[in] port Https port
- * @param[in] api API for post request to https server, example: transaction/. Must be
- * string.
+ * @param[in] host HTTP(S) host
+ * @param[in] port HTTP(S) port
+ * @param[in] api API path for POST request to HTTP(S) server, i.e "transaction/". It must be in string.
  * @param[in] msg Message to send
  * @param[in] msg_len Length of message
  * @param[in] ssl_seed Seed for ssl connection
