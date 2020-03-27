@@ -9,9 +9,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "crypto_utils.h"
 #include "serializer.h"
+#include "unity.h"
 
-const uint8_t iv[16] = {164, 3, 98, 193, 52, 162, 107, 252, 184, 42, 74, 225, 157, 26, 88, 72};
+const uint8_t iv[AES_BLOCK_SIZE] = {164, 3, 98, 193, 52, 162, 107, 252, 184, 42, 74, 225, 157, 26, 88, 72};
 const uint8_t payload[] = {
     99,  44,  121, 217, 149, 161, 127, 33,  133, 77,  125, 156, 53,  53,  248, 95,  57,  196, 141, 90,  121, 158,
     133, 218, 153, 153, 24,  84,  32,  245, 68,  131, 33,  189, 93,  182, 94,  220, 215, 227, 42,  85,  127, 95,
@@ -27,8 +29,12 @@ const uint8_t payload[] = {
     251, 91,  130, 34,  222, 70,  36,  45,  140, 85,  207, 141, 48,  1,   206, 31,  171, 235, 238, 126, 113};
 const uint16_t payload_len = 263;
 
-int main() {
-  uint8_t out[1024], iv_out[16], payload_out[1024];
+void setUp(void) {}
+
+void tearDown(void) {}
+
+void test_serialize_deserialize(void) {
+  uint8_t out[1024], iv_out[AES_BLOCK_SIZE], payload_out[1024];
   uint32_t payload_len_out, out_msg_len;
   int rc1 = serialize_msg(iv, payload_len, payload, out, &out_msg_len);
   int rc2 = deserialize_msg(out, iv_out, &payload_len_out, payload_out);
@@ -36,24 +42,17 @@ int main() {
   out[1023] = 0;
   payload_out[payload_len] = 0;
 
-  if (!memcmp(iv, iv_out, 16)) {
-    printf("iv SUCCESS \n");
-  } else {
-    printf("iv FAILED \n");
-  }
+  TEST_ASSERT_EQUAL_UINT8_ARRAY(iv, iv_out, AES_BLOCK_SIZE);
 
-  if (payload_len == payload_len_out) {
-    printf("payload_len SUCCESS \n");
-  } else {
-    printf("payload_len FAILED \n");
-  }
+  TEST_ASSERT_EQUAL_UINT32(payload_len, payload_len_out);
 
-  if (!memcmp(payload, payload_out, payload_len)) {
-    printf("payload SUCCESS \n");
-  } else {
-    printf("payload FAILED \n");
-    printf("payload %s \n", payload);
-    printf("payload_out %s \n", payload_out);
-  }
-  return 0;
+  TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, payload_out, payload_len);
+}
+
+int main(void) {
+  UNITY_BEGIN();
+
+  RUN_TEST(test_serialize_deserialize);
+
+  return UNITY_END();
 }
