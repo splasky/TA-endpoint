@@ -10,6 +10,7 @@
 #define SERIALIZER_H
 
 #include <stdint.h>
+#include "defined_error.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,11 +30,11 @@ extern "C" {
  * @param[out] out_msg_len Pointer to length of serialized message
  *
  * @return
- * - 0 on success
- * - non-zero on error
+ * - RET_OK on success
+ * - RET_FAULT on error
  */
-int serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const char *ciphertext, char *out_msg,
-                  uint32_t *out_msg_len);
+retcode_t serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const char *ciphertext, char *out_msg,
+                        uint32_t *out_msg_len);
 
 /**
  * @brief Deserialize message from serialize_msg
@@ -44,11 +45,11 @@ int serialize_msg(const uint8_t *iv, uint32_t ciphertext_len, const char *cipher
  * @param[out] ciphertext Pointer to plaintext output array
  *
  * @return
- * - 0 on success
- * - non-zero on error
+ * - RET_OK on success
+ * - RET_FAULT on error
  * @see #serialize_msg
  */
-int deserialize_msg(char *msg, const uint8_t *iv, uint32_t *ciphertext_len, char *ciphertext);
+retcode_t deserialize_msg(char *msg, const uint8_t *iv, uint32_t *ciphertext_len, char *ciphertext);
 
 #ifdef __cplusplus
 }

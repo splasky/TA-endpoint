@@ -10,6 +10,7 @@
 #define CRYPTO_UTILS_H
 
 #include <stdint.h>
+#include "defined_error.h"
 
 #ifdef __cplusplus
 extern "C" {

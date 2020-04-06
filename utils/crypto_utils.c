@@ -122,8 +122,8 @@ exit:
   return -1;
 }
 
-int aes_decrypt(const char *ciphertext, int ciphertext_len, const unsigned char *key, unsigned int keybits,
-                unsigned char iv[AES_BLOCK_SIZE], char *plaintext, int plaintext_len) {
+retcode_t aes_decrypt(const char *ciphertext, int ciphertext_len, const unsigned char *key, unsigned int keybits,
+                      unsigned char iv[AES_BLOCK_SIZE], char *plaintext, int plaintext_len) {
   mbedtls_aes_context ctx;
   int status, n = 0;
   char *err;
@@ -214,7 +214,7 @@ exit:
   return new_len;
 }
 
-int decrypt(const char *ciphertext, int ciphertext_len, char *plaintext, int plaintext_len, uint8_t iv[AES_BLOCK_SIZE],
-            uint8_t key[AES_CBC_KEY_SIZE]) {
+retcode_t decrypt(const char *ciphertext, int ciphertext_len, char *plaintext, int plaintext_len,
+                  uint8_t iv[AES_BLOCK_SIZE], uint8_t key[AES_CBC_KEY_SIZE]) {
   return aes_decrypt(ciphertext, ciphertext_len, key, 256, iv, plaintext, plaintext_len);
 }
