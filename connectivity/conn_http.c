@@ -231,6 +231,8 @@ retcode_t set_get_request(char const *const path, char const *const host, const 
 }
 
 int parser_body_callback(http_parser *parser, const char *at, size_t length) {
-  http_res_body = strdup(at);
+#ifdef DEBUG
+  printf("HTTP Response: %s\n", at);
+#endif
   return 0;
 }

@@ -23,11 +23,6 @@ extern "C" {
 #include "mbedtls/net.h"
 #include "mbedtls/ssl.h"
 
-/**< FIXME:A global pointer that points to HTTP resource body for passing response body to http_parser.
- * This variable will be removed or changed to static pointer as soon as possible. Don't
- * use this pointer directly.*/
-char *http_res_body;
-
 typedef struct {
   bool https;                         /**< Flag for check info has initialized or not */
   mbedtls_net_context *net_ctx;       /**< mbedtls_next context                       */
