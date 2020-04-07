@@ -32,11 +32,6 @@ retcode_t send_https_msg(char const *host, char const *port, char const *api, co
   http_close(&info);
   http_parser_init(&parser, HTTP_RESPONSE);
   http_parser_execute(&parser, &settings, res, strlen(res));
-#ifdef DEBUG
-  printf("HTTP Response: %s\n", http_res_body);
-#endif
-  free(http_res_body);
-  http_res_body = NULL;
 
   ret = parser.status_code;
   free(req);
