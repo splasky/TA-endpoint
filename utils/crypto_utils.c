@@ -16,64 +16,6 @@
 
 #define MAX_TIMESTAMP_LEN 20
 
-// The device ID we are used here is IMSI. We could use other physical ID in the
-// future.
-int get_device_id(const char *device_id) {
-  // TODO: replace cm command
-  char result_buf[MAXLINE], *imsi;
-  char cmd[] = "cm sim info";
-  FILE *fp;
-
-  fp = popen(cmd, "r");
-  if (NULL == fp) {
-    perror("popen open error");
-    return -1;
-  }
-
-  while (fgets(result_buf, sizeof(result_buf), fp) != NULL) {
-    if (strstr(result_buf, "IMSI")) {
-      result_buf[strlen(result_buf) - 1] = '\0';
-      imsi = strtok(result_buf + 5, " ");
-    }
-  }
-
-  strncpy((char *)device_id, imsi, IMSI_LEN);
-
-  if (pclose(fp) == -1) {
-    perror("close FILE pointer");
-    return -1;
-  }
-  return 0;
-}
-
-// Get AES key with hashchain in legato originated app form.
-int get_aes_key(const uint8_t *key) {
-  // TODO: replace cm command
-  char hash_chain_res[MAXLINE];
-  char cmd[] = "cm sim info";
-  FILE *fp;
-
-  fp = popen(cmd, "r");
-
-  if (NULL == fp) {
-    perror("popen open error");
-    return -1;
-  }
-
-  if (fgets(hash_chain_res, sizeof(hash_chain_res), fp) != NULL) {
-    hash_chain_res[strlen(hash_chain_res) - 2] = '\0';
-  }
-
-  strncpy((char *)key, hash_chain_res, AES_BLOCK_SIZE);
-
-  if (pclose(fp) == -1) {
-    perror("close FILE pointer");
-    return -1;
-  }
-
-  return 0;
-}
-
 int aes_encrypt(const char *plaintext, int plaintext_len, const unsigned char *key, unsigned int keybits,
                 unsigned char iv[AES_BLOCK_SIZE], char *ciphertext, int ciphertext_len) {
   mbedtls_aes_context ctx;

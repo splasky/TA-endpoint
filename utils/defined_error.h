@@ -24,6 +24,14 @@ typedef enum {
   RET_HTTP_CERT,    /**< failed on x509 cert parse */
   RET_HTTP_CONNECT, /**< failed on HTTP initial connection */
   RET_HTTP_SSL,     /**< failed on setting ssl config */
+  RET_DEVICE_INIT,  /**< initialize device error */
+  RET_DEVICE_FINI,  /**< finalize device error */
+  RET_UART_INIT,    /**< initialize uart error */
+  RET_NO_MEMORY,    /**< not enough memory error */
+  RET_OVERFLOW,     /**< overflow error */
+  RET_NOT_FOUND,    /**< item not found error */
+  RET_UNAVAILABLE,  /**< item not available */
+  RET_FAULT         /**< some other fault */
 } retcode_t;
 
 #ifdef __cplusplus
