@@ -22,28 +22,6 @@ extern "C" {
 #define IMSI_LEN 15
 
 /**
- * @brief Obtain device IMSI or physical ID
- *
- * @param[out] device_id Device id output
- *
- * @return
- * - 0 on success
- * - -1 on failed
- */
-int get_device_id(const char *device_id);
-
-/**
- * @brief Obtain aes key from hashchain
- *
- * @param[out] key Device key output
- *
- * @return
- * - 0 on success
- * - -1 on failed
- */
-int get_aes_key(const uint8_t *key);
-
-/**
  * @brief Encrypt plaintext
  *
  * @param[in] plaintext The text to be encrypted

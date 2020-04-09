@@ -17,7 +17,8 @@ UNITY_PATH = $(THIRD_PARTY_PATH)/Unity
 TEST_PATH = $(ROOT_DIR)/tests
 UTILS_PATH = $(ROOT_DIR)/utils
 CONNECTIVITY_PATH = $(ROOT_DIR)/connectivity
-export THIRD_PARTY_PATH ROOT_DIR UTILS_PATH MBEDTLS_PATH UNITY_PATH
+HAL_PATH = $(ROOT_DIR)/hal
+export THIRD_PARTY_PATH ROOT_DIR UTILS_PATH MBEDTLS_PATH UNITY_PATH HAL_PATH
 
 ifeq ($(DEBUG), n)
 CFLAGS = -Wall -Werror -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -O2
@@ -26,7 +27,7 @@ CFLAGS = -Wall -fPIC -DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -g3 -DDEBUG
 endif
 export CFLAGS
 
-INCLUDES = -I$(THIRD_PARTY_PATH)/http-parser -I$(MBEDTLS_PATH)/include -I$(ROOT_DIR)/connectivity -I$(ROOT_DIR)/utils
+INCLUDES = -I$(THIRD_PARTY_PATH)/http-parser -I$(MBEDTLS_PATH)/include -I$(ROOT_DIR)/connectivity -I$(ROOT_DIR)/utils -I$(HAL_PATH)
 LIBS = $(MBEDTLS_PATH)/library/libmbedx509.a $(MBEDTLS_PATH)/library/libmbedtls.a $(MBEDTLS_PATH)/library/libmbedcrypto.a
 export INCLUDES
 
@@ -55,13 +56,19 @@ test: utils
 %.o:%.c
 	$(CC) -v -c $(CFLAGS) $(INCLUDES) -MMD -MF $@.d -o $@ $<
 
-clean: clean_client clean_third_party clean_test
+hal:
+	$(MAKE) -C $(HAL_PATH)
+
+clean: clean_client clean_third_party clean_test clean_devices
 
 clean_test:
 	$(MAKE) -C $(TEST_PATH) clean
 
 clean_client:
 	rm -f $(OBJS) ta_client *.o *.c.d
+
+clean_devices:
+	$(MAKE) -C $(HAL_PATH) clean
 
 clean_third_party: clean_mbedtls clean_http_parser
 
