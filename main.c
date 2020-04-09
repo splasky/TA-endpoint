@@ -27,6 +27,7 @@
   "POWEREDBYTANGLEACCELERATOR999999999999999999999999999999999999999999999999" \
   "999999A"
 #define ADDR_LEN 81
+#define MAX_MSG_LEN 1024
 
 #ifndef DEBUG
 #define MSG "%s:%s"
@@ -54,8 +55,8 @@ int log_address(uint8_t *next_addr) {
 }
 
 int main(int argc, char *argv[]) {
-  char tryte_msg[1024] = {0}, msg[1024] = {0}, addr[ADDR_LEN + 1] = ADDRESS, ciphertext[1024] = {0},
-       raw_msg[1000] = {0};
+  char tryte_msg[MAX_MSG_LEN] = {0}, msg[MAX_MSG_LEN] = {0}, addr[ADDR_LEN + 1] = ADDRESS,
+       ciphertext[MAX_MSG_LEN] = {0}, raw_msg[1000] = {0};
   uint32_t raw_msg_len = 1 + ADDR_LEN + 20, ciphertext_len = 0, msg_len;
   uint8_t iv[AES_BLOCK_SIZE] = {0}, next_addr[ADDR_LEN + 1] = {0};
   srand(time(NULL));
@@ -137,7 +138,7 @@ int main(int argc, char *argv[]) {
   memcpy(private_key, key, 16);
   memcpy(iv, iv_global, 16);
 #endif
-      ciphertext_len = encrypt(raw_msg, strlen((char *)raw_msg), ciphertext, 1024, iv, private_key, id);
+      ciphertext_len = encrypt(raw_msg, strlen((char *)raw_msg), ciphertext, MAX_MSG_LEN, iv, private_key, id);
       if (ciphertext_len == 0) {
         fprintf(stderr, "%s\n", "encrypt msg error");
         return -1;
@@ -145,8 +146,11 @@ int main(int argc, char *argv[]) {
       serialize_msg(iv, ciphertext_len, ciphertext, msg, &msg_len);
       bytes_to_trytes((const unsigned char *)msg, msg_len, tryte_msg);
 
+      char msg_body[MAX_MSG_LEN];
+      gen_trytes_message(tryte_msg, addr, msg_body);
+
       // Init http session. verify: check the server CA cert.
-      send_https_msg(HOST, PORT, API, tryte_msg, msg_len, SSL_SEED);
+      send_https_msg(HOST, PORT, API, msg_body, MAX_MSG_LEN, SSL_SEED);
 
       memcpy(addr, next_addr, ADDR_LEN);
       free(response);
